@@ -45,6 +45,6 @@ on every commit would make every feature branch conflict on the version file.
 ## Mod index
 
 `mod-index.json` (schema 1, see the Gear Mod Manager's `docs/ModIndex.md`) lists both DLLs as `kind: plugin` items for the manager and
-points it at the release assets (`download.github` plus an asset pattern, nightlies included as pre-releases). It also follows the index of
+points it at the release assets (`download.github` plus an asset pattern; pre-releases count too). It also follows the index of
 the Gear mods. `tools/make_mod_index.py` generates it from the version files; edit the item table in that script for descriptions, tags
 or install rules.

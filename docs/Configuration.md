@@ -1,6 +1,6 @@
 # Configuration (`SacredBild.ini`)
 
-Before the game starts, a settings window offers the settings below with tooltips: General (resolution, window frame,
+Before the game starts, a settings window offers the settings below with tooltips: General (resolution, display mode,
 frame limit, VSync, UI size, renderer), Advanced (everything else; the controller's buttons are set in game) and HUD layout (`[UI.Layout]`). Play saves the
 changed ones to `SacredBild.ini`; Exit quits. "Don't show this window
 again" sets `[Launcher] HideSettingsWindow=1`; holding Shift as the game starts shows it anyway.
@@ -13,12 +13,11 @@ tabs, Start is Play. Text fields need the keyboard.
 |---|---|---|---|
 | Launcher | HideSettingsWindow | 0 | 1 = no settings window before the game starts; holding Shift as the game starts shows it anyway. |
 | Display | Width, Height | 0 | Render resolution; 0 = desktop. 1024x768 = unpatched game. |
-| Display | Borderless | auto | Main window frame: `auto` = a frame when the window is smaller than the screen, `1` = never (the game's frameless window), `0` = always. The client area is `Width` x `Height` either way. |
-| Display | Resizable | 1 | A window with a frame can be resized and "maximized" (the largest window of the picture's proportions in the work area). The game keeps its resolution; the picture is stretched to the window. See [Display](Display.md#resizable-window). Not with `Borderless` windows or in automation runs. |
-| Display | (automation) | | With `-gear-auto` the `Width`, `Height` and `Borderless` above are ignored: a framed 1600x900 window in the work area's bottom-right corner, `-gear-window=WxH[+X+Y]` changes it (see [Gear](Gear.md#automation)); `-gear-ui-scale=N` overrides `[UI] Scale` the same way. |
+| Display | Mode | Borderless | `Borderless` = a frameless window over the whole monitor; a `Width` x `Height` other than the monitor's is stretched to it. `Fullscreen` = exclusive: the display switches to `Width` x `Height` (Direct3D 9 backend; a size that is no display mode falls back to `Borderless`). `Windowed` = a framed window whose client area is `Width` x `Height`. |
+| Display | Resizable | 1 | A window with a frame can be resized and "maximized" (the largest window of the picture's proportions in the work area). The game keeps its resolution; the picture is stretched to the window. See [Display](Display.md#resizable-window). Only with `Mode=Windowed`, not in automation runs. |
+| Display | (automation) | | With `-gear-auto` the `Width`, `Height` and `Mode` above are ignored: a framed 1600x900 window in the work area's bottom-right corner, `-gear-window=WxH[+X+Y]` changes it (see [Gear](Gear.md#automation)); `-gear-ui-scale=N` overrides `[UI] Scale` the same way. |
 | Display | ClipCursor | 1 | Confine the mouse to the game window while it is in the foreground; hold Alt to move it out. |
-| Display | FpsLimit | 60 | The game's own in-game frame limit; 0 = off. |
-| Display | FpsLimitMenu | 30 | Frame limit in the main menu (no game running); 0 = off. |
+| Display | FpsLimit | 60 | Frame limit in game and in the menus; 0 = off. |
 | Display | FpsLimitInactive | 20 | Frame limit while the game is in the background, in game and in the menus; 0 = off. |
 | Display | VSync | 1 | Direct3D 9 backend: present on the display's refresh (flip model); 0 = right away, not limited by the refresh rate (blit model). |
 | Display | MaxFrameLatency | 1 | Direct3D 9 backend: frames the CPU may queue ahead of the GPU. |
@@ -29,7 +28,7 @@ tabs, Start is Play. Text fields need the keyboard.
 | Camera | ZoomSpeed | 100 | Percent: how fast a held zoom key and a wheel notch change the zoom. |
 | Camera | ZoomWheel | 1 | The mouse wheel (and the controller's right stick) zooms while the cursor is over the world, not over a window. |
 | UI | Scale | 0 | UI scale; 0 = as large as fits the screen height, otherwise a factor (1 = native pixels), capped at that. |
-| UI | ScaleMode | InGame | Where `Scale` applies: `InGame` = the in-game UI only; the menus, the full-screen windows in game (options, save/load, character export, map) and the loading screen always fill the screen height. `Full` = those too. |
+| UI | ScaleMode | InGame | Where `Scale` applies: `InGame` = the in-game UI only; the menus, the full-screen windows in game (options, save/load, character export, map) and the loading screen are stretched over the whole screen (no black bars). `Full` = a fixed `Scale` applies to those too. |
 | UI | LinearFilter | 1 | Bilinear filtering for the scaled UI instead of the game's point sampling. |
 | UI | Anchor | 1 | In game, HUD windows placed by `[UI.Layout]`; 0 = all of the UI in the centered canvas. |
 | UI.Layout | Taskbar, Chat | 2048,4096 | Where a window's 1024x768 layout goes: X,Y in 0..4096 of the room the screen leaves around it (0 = left/top edge, 2048 = centered, 4096 = right/bottom edge). |

@@ -543,8 +543,9 @@ extern "C" void __cdecl SacredBild_UiPopFrame()
     }
 }
 
-// Where the calling thread's current frame lands on the screen: out[0] screen pixels per layout unit, out[1], out[2]
-// the screen position of the frame's layout (0, 0). Sacred Gear rasterizes text for the screen's pixels with it.
+// Where the calling thread's current frame lands on the screen: out[0] screen pixels per layout unit (vertical ones in
+// the stretched menus), out[1], out[2] the screen position of the frame's layout (0, 0). Sacred Gear rasterizes text
+// for the screen's pixels with it.
 extern "C" int __cdecl SacredBild_UiPlacement(float* out)
 {
     if (!UiCanvas::enabled() || !out)
@@ -552,7 +553,7 @@ extern "C" int __cdecl SacredBild_UiPlacement(float* out)
         return 0;
     }
     const UiCanvas::Placement p = UiCanvas::placement();
-    out[0] = p.scale;
+    out[0] = p.scaleY;
     out[1] = p.originX;
     out[2] = p.originY;
     return 1;

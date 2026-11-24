@@ -229,6 +229,52 @@ namespace DDraw9::Gpu
             common | D3DCREATE_SOFTWARE_VERTEXPROCESSING,
         };
         HRESULT hr = E_FAIL;
+        // Exclusive fullscreen ([Display] Mode=Fullscreen): the display switches to the back buffer's size at the
+        // highest refresh rate it has. Direct3D manages the window then (Alt+Tab minimizes it and restores the
+        // desktop's mode). Failing that, the game runs in its window.
+        if (Config::display.mode == Config::Display::Mode::Fullscreen)
+        {
+            d9::D3DDISPLAYMODEEX mode = {sizeof(mode)};
+            d9::D3DDISPLAYMODEFILTER filter = {sizeof(filter), d9::D3DFMT_X8R8G8B8, d9::D3DSCANLINEORDERING_PROGRESSIVE};
+            for (UINT i = 0, count = g_d3d->GetAdapterModeCountEx(g_adapter, &filter); i < count; ++i)
+            {
+                d9::D3DDISPLAYMODEEX candidate = {sizeof(candidate)};
+                if (SUCCEEDED(g_d3d->EnumAdapterModesEx(g_adapter, &filter, i, &candidate)) && candidate.Width == width &&
+                    candidate.Height == height && candidate.RefreshRate > mode.RefreshRate)
+                {
+                    mode = candidate;
+                }
+            }
+            const d9::D3DPRESENT_PARAMETERS windowed = g_params;
+            g_params.Windowed = FALSE;
+            g_params.SwapEffect = d9::D3DSWAPEFFECT_DISCARD;    // the flip model is for windows
+            g_params.BackBufferCount = 2;
+            g_params.FullScreen_RefreshRateInHz = mode.RefreshRate;
+            for (DWORD flags : attempts)
+            {
+                if (mode.RefreshRate == 0)
+                {
+                    break;      // not a display mode
+                }
+                hr = g_d3d->CreateDeviceEx(g_adapter, d9::D3DDEVTYPE_HAL, window, flags & ~D3DCREATE_NOWINDOWCHANGES,
+                    &g_params, &mode, &g_device);
+                if (SUCCEEDED(hr))
+                {
+                    LOG("Direct3D 9: device {}x{} fullscreen at {} Hz, {}vertex processing{}, vsync {}, frame latency {}",
+                        width, height, mode.RefreshRate, (flags & D3DCREATE_SOFTWARE_VERTEXPROCESSING) ? "software " : "hardware ",
+                        (flags & D3DCREATE_PUREDEVICE) ? " (pure)" : "", Config::display.vsync ? "on" : "off",
+                        Config::display.maxFrameLatency);
+                    break;
+                }
+                g_device = nullptr;
+            }
+            if (!g_device)
+            {
+                LOG("Direct3D 9: no fullscreen at {}x{} ({:08x}), the game runs in its window", width, height,
+                    static_cast<uint32_t>(hr));
+                g_params = windowed;
+            }
+        }
         for (int swap = 0; swap < 2 && !g_device; ++swap)
         {
             if (swap == 1)
@@ -268,7 +314,9 @@ namespace DDraw9::Gpu
     void matchBackBuffer(UINT width, UINT height)
     {
         std::scoped_lock lock(g_lock);
-        if (!g_device || g_backBufferFrozen || (g_params.BackBufferWidth == width && g_params.BackBufferHeight == height))
+        // In fullscreen the back buffer is the display mode.
+        if (!g_device || g_backBufferFrozen || !g_params.Windowed ||
+            (g_params.BackBufferWidth == width && g_params.BackBufferHeight == height))
         {
             return;
         }

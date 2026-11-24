@@ -251,15 +251,10 @@ namespace
     constexpr DWORD kFramedStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
     constexpr DWORD kResizableStyle = WS_THICKFRAME | WS_MAXIMIZEBOX;
 
-    bool wantFrame()
+    // Borderless and fullscreen keep the game's frameless popup; the chained ddraw only does windows of the mode's size.
+    bool coversScreen()
     {
-        switch (Config::display.frame)
-        {
-        case Config::Display::Frame::Never: return false;
-        case Config::Display::Frame::Always: return true;
-        case Config::Display::Frame::Auto: break;
-        }
-        return g_width < GetSystemMetrics(SM_CXSCREEN) || g_height < GetSystemMetrics(SM_CYSCREEN);
+        return Config::ddraw.d3d9 && Config::display.mode != Config::Display::Mode::Windowed;
     }
 
     // Window rectangle around the client rectangle `rect`, at the window's DPI.
@@ -296,6 +291,28 @@ namespace
             x = (screenW - cx) / 2;
             y = (screenH - cy) / 2;
             LOG("Main window: fullscreen as a {}x{} window", cx, cy);
+        }
+        if (window && window == g_mainWindow && coversScreen() && !(flags & SWP_NOSIZE))
+        {
+            // Fullscreen: the screen of the display mode Direct3D switches to. Borderless: the whole monitor, the
+            // frame stretched to it.
+            MONITORINFO monitor = {};
+            monitor.cbSize = sizeof(monitor);
+            if (Config::display.mode == Config::Display::Mode::Fullscreen)
+            {
+                x = 0;
+                y = 0;
+                cx = g_width;
+                cy = g_height;
+            }
+            else if (GetMonitorInfoW(MonitorFromWindow(window, MONITOR_DEFAULTTOPRIMARY), &monitor))
+            {
+                x = monitor.rcMonitor.left;
+                y = monitor.rcMonitor.top;
+                cx = monitor.rcMonitor.right - monitor.rcMonitor.left;
+                cy = monitor.rcMonitor.bottom - monitor.rcMonitor.top;
+            }
+            flags &= ~SWP_NOMOVE;
         }
         if (window && window == g_mainWindow && g_framed && !(flags & SWP_NOSIZE))
         {
@@ -355,21 +372,24 @@ namespace
         }
         if (mainWindow)
         {
-            g_framed = wantFrame();
+            g_framed = Config::display.mode == Config::Display::Mode::Windowed;
             if (g_framed)
             {
                 style = (style & WS_VISIBLE) | kFramedStyle | (Config::display.resizable ? kResizableStyle : 0);
             }
-            LOG("Main window: {}", g_framed ? "framed" : "borderless");
+            LOG("Main window: {}", g_framed ? "framed"
+                    : !coversScreen() ? "frameless"
+                    : Config::display.mode == Config::Display::Mode::Fullscreen ? "fullscreen" : "borderless over the monitor");
         }
         HWND window = g_origCreateWindowExA(exStyle, cls, name, style, x, y, w, h, parent, menu, inst, param);
         if (mainWindow && window)
         {
             g_mainWindow = window;
             Focus::windowCreated(window);
-            if (g_framed && Config::display.resizable)
+            // The frame is stretched to a resized window or over the monitor: the cursor goes through the scale.
+            if (g_framed ? Config::display.resizable : coversScreen() && Config::display.mode == Config::Display::Mode::Borderless)
             {
-                WindowFit::windowCreated(window);
+                WindowFit::windowCreated(window, g_framed);
             }
         }
         return window;
@@ -900,6 +920,20 @@ namespace
         }
     }
 
+    bool displayModeExists(int width, int height)
+    {
+        DEVMODEW mode = {};
+        mode.dmSize = sizeof(mode);
+        for (DWORD i = 0; EnumDisplaySettingsW(nullptr, i, &mode); ++i)
+        {
+            if (static_cast<int>(mode.dmPelsWidth) == width && static_cast<int>(mode.dmPelsHeight) == height && mode.dmBitsPerPel == 32)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     void chooseSize()
     {
         int w = Config::display.width;
@@ -998,6 +1032,12 @@ void Resolution::install()
 {
     chooseSize();
     LOG("Resolution: {}x{}, world depth range {:.0f}..{:.0f}", g_width, g_height, g_near, g_far);
+    if (Config::display.mode == Config::Display::Mode::Fullscreen && (!Config::ddraw.d3d9 || !displayModeExists(g_width, g_height)))
+    {
+        LOG("Resolution: no fullscreen at {}x{} ({}), borderless instead", g_width, g_height,
+            Config::ddraw.d3d9 ? "not a display mode" : "needs the Direct3D 9 backend");
+        Config::display.mode = Config::Display::Mode::Borderless;
+    }
     Patch::hook(g_origFindMode, Addr::cDxDevices_findMode, &hookFindMode, "cDxDevices::findMode");
     if (active() || Config::ddraw.d3d9)
     {

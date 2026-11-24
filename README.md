@@ -85,10 +85,10 @@ Prefer to do it by hand? The manual steps are below.
 
 ## Install (by hand)
 
-Download a [release](../../releases) (tagged versions, and a nightly prerelease of every push to `main`) and extract
-the zip into the game folder. It replaces the `ddraw.dll` there (if that is DDrawCompat, move it to
-`SacredBild\DDrawCompat.dll` first) and an existing `SacredBild.ini`. `SacredGear.dll` next to the game is loaded by
-SacredBild; other loaders: [Sacred Gear, Install](docs/Gear.md#install). Mods go into `mods`.
+Download a [release](../../releases) and extract the zip into the game folder. It replaces the `ddraw.dll` there (if
+that is DDrawCompat, move it to `SacredBild\DDrawCompat.dll` first) and an existing `SacredBild.ini`. `SacredGear.dll`
+next to the game is loaded by SacredBild; other loaders: [Sacred Gear, Install](docs/Gear.md#install). Mods go into
+`mods`.
 
 From a build (see [Build](docs/Development.md#build)):
 

@@ -157,16 +157,18 @@ namespace
         ui.page(L"General");
         ui.group(L"Display");
         ui.combo(L"Resolution:", {L"Display", L"Width,Height"}, resolutions(), resolution())
-            .tip(L"The resolution the game renders at. Desktop = the screen's resolution; a smaller one plays in a "
-                 L"window. 1024 x 768 runs the original game without patches.");
-        ui.combo(L"Window frame:", {L"Display", L"Borderless"},
-              {{L"Automatic", L"auto"}, {L"Borderless", L"1"}, {L"Window frame", L"0"}},
-              Config::display.frame == Config::Display::Frame::Auto ? L"auto" : Config::display.frame == Config::Display::Frame::Never ? L"1" : L"0")
-            .tip(L"Automatic: a frame with a title bar (to move the window) when the window is smaller than the screen, "
-                 L"none when it fills the screen.\nBorderless: never a frame.\nWindow frame: always a frame.\n"
-                 L"The area inside the frame has the chosen resolution either way.");
-        ui.check(L"Resizable window (with a frame)", {L"Display", L"Resizable"}, Config::display.resizable)
-            .enabledIf([](const Form& f) { return f.value(L"Display", L"Borderless") != L"1"; })
+            .tip(L"The resolution the game renders at. Desktop = the screen's resolution. 1024 x 768 runs the original "
+                 L"game without patches.");
+        ui.combo(L"Display mode:", {L"Display", L"Mode"},
+              {{L"Fullscreen windowed", L"Borderless"}, {L"Fullscreen", L"Fullscreen"}, {L"Windowed", L"Windowed"}},
+              Config::display.mode == Config::Display::Mode::Fullscreen ? L"Fullscreen"
+                  : Config::display.mode == Config::Display::Mode::Windowed ? L"Windowed" : L"Borderless")
+            .tip(L"Fullscreen windowed: a window without a frame over the whole screen; another resolution than the "
+                 L"screen's is stretched to it.\nFullscreen: the screen switches to the chosen resolution (needs the "
+                 L"SacredBild (Direct3D 9) renderer).\nWindowed: a window with a title bar, its inside at the chosen "
+                 L"resolution.");
+        ui.check(L"Resizable window", {L"Display", L"Resizable"}, Config::display.resizable)
+            .enabledIf([](const Form& f) { return f.value(L"Display", L"Mode") == L"Windowed"; })
             .tip(L"A window with a frame can be resized and maximized. The game keeps its resolution: the picture is "
                  L"stretched to the window, which keeps the picture's proportions.");
         const int refresh = displayRefresh();
@@ -181,7 +183,7 @@ namespace
                       : n == refresh ? Fmt::format(L"{} fps (display refresh)", n)
                                      : fps(n);
               })
-            .tip(L"The game's own frame limit in game (it uses 60), e.g. 144 for a 144 Hz display. The menus are unchanged.");
+            .tip(L"The frame limit in game and in the menus (the game uses 60), e.g. 144 for a 144 Hz display.");
         ui.check(L"Wait for the display's refresh (VSync)", {L"Display", L"VSync"}, Config::display.vsync)
             .enabledIf(d3d9)
             .tip(L"Show each frame on the display's refresh (no tearing). Off: show frames right away. "
@@ -221,7 +223,7 @@ namespace
             .values(L"Full", L"InGame")
             .enabledIf([](const Form& f) { return f.value(L"UI", L"Scale") != L"0"; })
             .tip(L"Use the UI size for the menus, the full-screen windows in game (options, save/load, map) and the "
-                 L"loading screen too. Off: those always fill the screen height.");
+                 L"loading screen too. Off: those are stretched over the whole screen.");
         ui.check(L"Place the HUD windows at the screen edges", {L"UI", L"Anchor"}, Config::ui.anchor)
             .tip(L"In game, place the taskbar, minimap, inventory and the other HUD windows at the screen edges "
                  L"(HUD layout tab). Off: the whole interface stays in the centered 1024 x 768 area.");
@@ -261,9 +263,6 @@ namespace
 
         ui.page(L"Advanced");
         ui.group(L"Frame timing");
-        ui.combo(L"In menu:", {L"Display", L"FpsLimitMenu"}, {0, 15, 20, 30, 60},
-              std::max(Config::display.fpsLimitMenu, 0), fps)
-            .tip(L"Frame limit in the main menu (no game running). The menu needs no more than 30 frames per second.");
         ui.combo(L"In the background:", {L"Display", L"FpsLimitInactive"}, {0, 10, 15, 20, 30, 60},
               std::max(Config::display.fpsLimitInactive, 0), fps)
             .tip(L"Frame limit while the game is in the background (another window has the focus), in game and in the menus.");

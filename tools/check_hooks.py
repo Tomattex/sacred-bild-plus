@@ -27,6 +27,7 @@ HOOKS = {
     0x006487D0: ('captureScreenshot (cdecl)', 0),
     0x0060E350: ('cEngine::renderThreadRun (fastcall)', 0),
     0x0060A9F0: ('frameLimiter (cdecl)', 0),
+    0x0075EF40: ('menuWater::update', 1),
     0x00635FE0: ('layerRecordCache', 1),
     0x00635E50: ('recordCache', 1),
     0x00640410: ('recordMapFind (called)', 1),

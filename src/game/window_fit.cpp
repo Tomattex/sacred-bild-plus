@@ -12,7 +12,7 @@ namespace
     using GetCursorPosFn = BOOL(WINAPI*)(LPPOINT);
 
     GetCursorPosFn g_origGetCursorPos = nullptr;
-    HWND g_window = nullptr;
+    HWND g_window = nullptr;        // the main window while its client area may differ from the frame
     bool g_resizable = false;
 
     // "Maximized": the largest window of the frame's aspect ratio in the work area, not Windows' own maximized
@@ -41,7 +41,7 @@ namespace
         HWND window = g_window;
         RECT client = {};
         f.origin = {0, 0};
-        if (!g_resizable || !window || IsIconic(window) || !GetClientRect(window, &client) || !ClientToScreen(window, &f.origin))
+        if (!window || IsIconic(window) || !GetClientRect(window, &client) || !ClientToScreen(window, &f.origin))
         {
             return false;
         }
@@ -212,10 +212,6 @@ namespace
 
 void WindowFit::install()
 {
-    if (!Config::display.resizable)
-    {
-        return;
-    }
     g_origGetCursorPos = static_cast<GetCursorPosFn>(
         Patch::iat("USER32.dll", "GetCursorPos", reinterpret_cast<void*>(&hookGetCursorPos)));
     if (!g_origGetCursorPos)
@@ -224,12 +220,15 @@ void WindowFit::install()
     }
 }
 
-void WindowFit::windowCreated(HWND window)
+void WindowFit::windowCreated(HWND window, bool resizable)
 {
     g_window = window;
-    g_resizable = true;
-    LOG("Window: resizable, the {}x{} frame is stretched to the client area at its aspect ratio", Resolution::width(),
-        Resolution::height());
+    g_resizable = resizable;
+    if (resizable)
+    {
+        LOG("Window: resizable, the {}x{} frame is stretched to the client area at its aspect ratio", Resolution::width(),
+            Resolution::height());
+    }
 }
 
 bool WindowFit::scaled()
@@ -268,7 +267,16 @@ POINT WindowFit::gameToScreen(POINT game)
 
 bool WindowFit::message(HWND window, UINT message, WPARAM wParam, LPARAM lParam, LRESULT& result)
 {
-    if (!g_resizable || window != g_window)
+    if (window != g_window)
+    {
+        return false;
+    }
+    if (message == WM_ERASEBKGND)
+    {
+        result = 1;     // the stretched frame covers the whole client area
+        return true;
+    }
+    if (!g_resizable)
     {
         return false;
     }
@@ -336,9 +344,6 @@ bool WindowFit::message(HWND window, UINT message, WPARAM wParam, LPARAM lParam,
             fitMaximize(window);
         }
         result = 0;
-        return true;
-    case WM_ERASEBKGND:
-        result = 1;     // the stretched frame covers the whole client area
         return true;
     default:
         return false;

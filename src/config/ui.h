@@ -7,8 +7,8 @@ namespace Config
     {
         // UI canvas: the 1024x768 UI drawn centered. 0 = scale to fit the screen height.
         float scale = 0.0f;
-        // ScaleMode=Full: `scale` applies to the menus (start menu, options, ...) too. InGame: in game only, the menus
-        // always fit the screen height.
+        // ScaleMode=Full: a fixed `scale` applies to the menus (start menu, options, ...) too. InGame: in game only,
+        // the menus are stretched over the whole screen.
         bool scaleMenus = false;
         // In game, the HUD windows (taskbar, minimap, inventory, ...) are placed on the screen by [UI.Layout] instead
         // of staying in the centered canvas.

@@ -137,24 +137,19 @@ namespace
         }
     }
 
-    // The game's frame limiter, called by the menus and the game once per frame, replaced by paceFrame: the in-game
-    // limit (the game passes 60; menus keep theirs), and [Display] FpsLimitInactive in the background.
+    // The game's frame limiter, called by the menus and the game once per frame (both pass 60), replaced by
+    // paceFrame: [Display] FpsLimit, and [Display] FpsLimitInactive in the background.
     using LimiterFn = void(__cdecl*)(double unused, uint32_t fps);
     LimiterFn g_origLimiter = nullptr;
 
     // Set by the limiter hook, cleared by each flip: tells hookFlip whether the frame was paced already.
     thread_local bool t_limiterCalled = false;
 
-    // The limit for this frame: [Display] FpsLimitInactive in the background (the lower of it and the menu limit in
-    // the menus), [Display] FpsLimitMenu in the menus, FpsLimit in game, `passed` (the menus' own) otherwise.
-    int frameLimit(int passed, bool inGameRender)
+    // The limit for this frame: [Display] FpsLimit for the frames the menus and the game present, `passed` (the
+    // game's own) for its other loops; [Display] FpsLimitInactive in the background when that is lower.
+    int frameLimit(int passed, bool presented)
     {
-        const bool menu = g_engine == nullptr;
-        int limit = inGameRender ? Config::display.fpsLimit : passed;
-        if (menu && Config::display.fpsLimitMenu > 0)
-        {
-            limit = Config::display.fpsLimitMenu;
-        }
+        int limit = presented ? Config::display.fpsLimit : passed;
         if (Config::display.fpsLimitInactive > 0 && !Focus::foreground() &&
             (limit <= 0 || Config::display.fpsLimitInactive < limit))
         {
@@ -163,12 +158,30 @@ namespace
         return limit;
     }
 
+    // The menus' water steps its waves once per call, which made them as fast as the menu's frame rate: stepped at the
+    // rate the original menus ran (~30 fps, Sleep(20) at the default 15.6 ms timer) instead, each step with its share
+    // of the time. A long stall catches up a few steps, not all of them.
+    decltype(Addr::menuWater_update)::Ptr g_origWaterUpdate = nullptr;
+
+    void __fastcall hookWaterUpdate(void* self, void* edx, float seconds)
+    {
+        constexpr float kStep = 1.0f / 30.0f;
+        static float pending = 0.0f;    // the menu thread's only
+        pending = std::min(pending + std::max(seconds, 0.0f), 4.0f * kStep);
+        while (pending >= kStep)
+        {
+            pending -= kStep;
+            g_origWaterUpdate(self, edx, kStep);
+        }
+    }
+
     void __cdecl hookLimiter(double, uint32_t fps)
     {
         t_limiterCalled = true;
-        const bool inGameRender = g_engine != nullptr &&
+        // The menu loop presents while no engine runs, the engine's render loop in game.
+        const bool presented = g_engine == nullptr ||
             reinterpret_cast<uintptr_t>(_ReturnAddress()) == Addr::renderLimiterReturn;
-        const int limit = frameLimit(static_cast<uint16_t>(fps), inGameRender);   // the game reads the low word only
+        const int limit = frameLimit(static_cast<uint16_t>(fps), presented);   // the game reads the low word only
         if (limit > 0)
         {
             paceFrame(limit);
@@ -205,10 +218,10 @@ namespace
             }
         }
         // The menus' own frames that bypassed the game's limiter (a loop that waits some other way) are paced here,
-        // so the menu and background limits hold there too.
+        // so the frame and background limits hold there too.
         if (g_engine == nullptr && !t_limiterCalled)
         {
-            if (const int limit = frameLimit(0, false); limit > 0)
+            if (const int limit = frameLimit(0, true); limit > 0)
             {
                 paceFrame(limit);
             }
@@ -402,15 +415,16 @@ void FrameHooks::install()
     Patch::hook(g_origUiRender, Addr::cUI_Manager_render, &hookUiRender, "cUI_Manager::render");
     Patch::hook(g_origRenderThreadRun, Addr::cEngine_renderThreadRun, &hookRenderThreadRun, "cEngine::renderThreadRun");
     Patch::hook(g_origLimiter, Addr::frameLimiter, &hookLimiter, "frameLimiter");
+    Patch::hook(g_origWaterUpdate, Addr::menuWater_update, &hookWaterUpdate, "menu water update");
     // The menu loop sleeps 20 ms every frame before drawing (jz over `push 14h; call Sleep` -> jmp), which at the
-    // default timer resolution is ~31 ms: the menus ran at ~30 fps whatever [Display] FpsLimitMenu said. paceFrame
+    // default timer resolution is ~31 ms: the menus ran at ~30 fps whatever [Display] FpsLimit said. paceFrame
     // paces them now.
     if (Patch::verify(Addr::menuLoopSleepJump, {0x74, 0x04, 0x6A, 0x14}) &&
         Patch::value<uint8_t>(Addr::menuLoopSleepJump, 0xEB))
     {
         LOG("Menu loop: 20 ms sleep removed");
     }
-    LOG("Frame limit in game: {}, in the background: {}",
+    LOG("Frame limit: {}, in the background: {}",
         Config::display.fpsLimit > 0 ? std::to_string(Config::display.fpsLimit) : std::string("off"),
         Config::display.fpsLimitInactive > 0 ? std::to_string(Config::display.fpsLimitInactive) : std::string("off"));
 }
