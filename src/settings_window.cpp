@@ -181,7 +181,7 @@ namespace
                       : n == refresh ? Fmt::format(L"{} fps (display refresh)", n)
                                      : fps(n);
               })
-            .tip(L"The game's own frame limit in game (it uses 60), e.g. 144 for a 144 Hz display. The menus are unchanged.");
+            .tip(L"The frame limit in game and in the menus (the game uses 60), e.g. 144 for a 144 Hz display.");
         ui.check(L"Wait for the display's refresh (VSync)", {L"Display", L"VSync"}, Config::display.vsync)
             .enabledIf(d3d9)
             .tip(L"Show each frame on the display's refresh (no tearing). Off: show frames right away. "
@@ -261,9 +261,6 @@ namespace
 
         ui.page(L"Advanced");
         ui.group(L"Frame timing");
-        ui.combo(L"In menu:", {L"Display", L"FpsLimitMenu"}, {0, 15, 20, 30, 60},
-              std::max(Config::display.fpsLimitMenu, 0), fps)
-            .tip(L"Frame limit in the main menu (no game running). The menu needs no more than 30 frames per second.");
         ui.combo(L"In the background:", {L"Display", L"FpsLimitInactive"}, {0, 10, 15, 20, 30, 60},
               std::max(Config::display.fpsLimitInactive, 0), fps)
             .tip(L"Frame limit while the game is in the background (another window has the focus), in game and in the menus.");

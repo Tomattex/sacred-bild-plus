@@ -28,8 +28,7 @@ namespace Config
         // window (aspect ratio kept, black bars). Not in automation runs.
         bool resizable = true;
         bool clipCursor = true;       // mouse confined to the game window while it is in the foreground
-        int fpsLimit = 60;            // the game's own in-game frame limit (it uses 60); 0 = off
-        int fpsLimitMenu = 30;        // frame limit in the main menu (no game running); 0 = off
+        int fpsLimit = 60;            // frame limit in game and in the menus (the game uses 60); 0 = off
         int fpsLimitInactive = 20;    // frame limit (menus and game) while none of the game's windows is in the foreground; 0 = off
         // Direct3D 9 backend: wait for the display's refresh when presenting, and how many frames the CPU may
         // queue ahead of the GPU (1 = lowest input latency).

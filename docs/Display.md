@@ -81,4 +81,4 @@ The game stopped drawing when it lost the focus, which often left the main menu 
 `[Display] FpsLimitInactive` frames per second.
 
 The game's limiter (60 fps in game and in the menus) spun on `Sleep(0)` for the rest of every frame. SacredBild
-sleeps on a high-resolution timer instead.
+sleeps on a high-resolution timer instead, at `[Display] FpsLimit` in game and in the menus alike.
