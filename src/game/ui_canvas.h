@@ -1,11 +1,11 @@
 #pragma once
 #include <string>
 
-// The game's UI keeps running in its native 1024x768 space: it is drawn into a centered (optionally scaled)
-// canvas and the cursor is mapped into that space. World code keeps physical screen coordinates.
-// The canvas has an in-game placement ([UI] Scale) and one for the menus, full-screen windows in game and the
-// loading screen ([UI] ScaleMode=InGame: as large as fits; Full: the in-game one). The UI manager's state picks it;
-// a UI scope keeps the one it started with.
+// The game's UI keeps running in its native 1024x768 space: it is drawn into a canvas on the screen and the cursor is
+// mapped into that space. World code keeps physical screen coordinates.
+// The canvas has an in-game placement ([UI] Scale: centered, scaled alike in x and y) and one for the menus,
+// full-screen windows in game and the loading screen ([UI] ScaleMode=InGame: stretched over the whole screen; Full:
+// the in-game one). The UI manager's state picks it; a UI scope keeps the one it started with.
 //
 // Frames place a 1024x768 layout elsewhere on the screen: windows anchored to a screen edge (UiAnchor) draw, read
 // the cursor and receive mouse events in a frame shifted against the canvas, so the game's own layout of each
@@ -55,7 +55,7 @@ namespace UiCanvas
     Frame frame();
     struct Placement
     {
-        float scale, originX, originY;
+        float scaleX, scaleY, originX, originY;
         float clipLeft, clipTop, clipRight, clipBottom;
     };
     Placement placement();

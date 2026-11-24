@@ -28,7 +28,7 @@ tabs, Start is Play. Text fields need the keyboard.
 | Camera | ZoomSpeed | 100 | Percent: how fast a held zoom key and a wheel notch change the zoom. |
 | Camera | ZoomWheel | 1 | The mouse wheel (and the controller's right stick) zooms while the cursor is over the world, not over a window. |
 | UI | Scale | 0 | UI scale; 0 = as large as fits the screen height, otherwise a factor (1 = native pixels), capped at that. |
-| UI | ScaleMode | InGame | Where `Scale` applies: `InGame` = the in-game UI only; the menus, the full-screen windows in game (options, save/load, character export, map) and the loading screen always fill the screen height. `Full` = those too. |
+| UI | ScaleMode | InGame | Where `Scale` applies: `InGame` = the in-game UI only; the menus, the full-screen windows in game (options, save/load, character export, map) and the loading screen are stretched over the whole screen (no black bars). `Full` = a fixed `Scale` applies to those too. |
 | UI | LinearFilter | 1 | Bilinear filtering for the scaled UI instead of the game's point sampling. |
 | UI | Anchor | 1 | In game, HUD windows placed by `[UI.Layout]`; 0 = all of the UI in the centered canvas. |
 | UI.Layout | Taskbar, Chat | 2048,4096 | Where a window's 1024x768 layout goes: X,Y in 0..4096 of the room the screen leaves around it (0 = left/top edge, 2048 = centered, 4096 = right/bottom edge). |

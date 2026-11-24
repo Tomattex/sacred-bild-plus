@@ -24,13 +24,15 @@ namespace
 
     bool g_enabled = false;
 
-    // Canvas placement in physical pixels: in game, and in the menus (ScaleMode=InGame: always as large as fits).
+    // Canvas placement in physical pixels: in game, and in the menus (ScaleMode=InGame: stretched over the screen).
     struct Layout
     {
-        float scale = 1.0f;
+        float scaleX = 1.0f;
+        float scaleY = 1.0f;
         float left = 0.0f;
         float top = 0.0f;
     };
+    constexpr Layout kNative{};     // a screen laid out for the real screen size: drawn and picked as it is
     Layout g_game, g_menu;
     Layout g_startMenu;     // ReBorn: the start menu, whose entries carry the center offset like its in-game windows
     thread_local int t_depth = 0;
@@ -73,7 +75,6 @@ namespace
 
     const Layout& reBornMenuLayout(const cUI_Manager& manager)
     {
-        static const Layout native{1.0f, 0.0f, 0.0f};
         const Layout* chosen = &g_menu;
         bool start = false;
         int shown = -1;
@@ -91,8 +92,7 @@ namespace
             }
             else if (spansScreen(menu))
             {
-
-                chosen = &native;
+                chosen = &kNative;
                 break;
             }
         }
@@ -108,7 +108,7 @@ namespace
             {
                 g_autoTrace = 3;
             }
-            LOG("UI canvas: menu layout {} (first visible screen {})", chosen == &native ? "native" : chosen == &g_startMenu ? "start menu" : "canvas", shown);
+            LOG("UI canvas: menu layout {} (first visible screen {})", chosen == &kNative ? "native" : chosen == &g_startMenu ? "start menu" : "canvas", shown);
             for (int i = 0; i < cUI_Manager::menuCount; ++i)
             {
                 const cUI_Window2* menu = manager.menus[i];
@@ -172,8 +172,7 @@ namespace
             const cUI_Window2* alone = UiState::exclusiveWindow();
             if (alone && (alone->width > 1024 || alone->height > 768))
             {
-                static const Layout native{1.0f, 0.0f, 0.0f};
-                return native;
+                return kNative;
             }
         }
         if (!inGame && Sacred::reBorn() && manager && (manager->flags & cUI_Manager::inMenus))
@@ -188,8 +187,7 @@ namespace
                 const cUI_Window2* menu = manager->menus[i];
                 if (menu && menu->visible() && spansScreen(menu))
                 {
-                    static const Layout native{1.0f, 0.0f, 0.0f};
-                    return native;
+                    return kNative;
                 }
             }
         }
@@ -446,17 +444,17 @@ extern "C" int __cdecl SacredBild_UiSetCursorFilter(int(__cdecl* filter)(int x, 
 
 UiCanvas::Bounds UiCanvas::menuCanvas()
 {
-    return {g_menu.left, g_menu.top, g_menu.left + 1024.0f * g_menu.scale, g_menu.top + 768.0f * g_menu.scale};
+    return {g_menu.left, g_menu.top, g_menu.left + 1024.0f * g_menu.scaleX, g_menu.top + 768.0f * g_menu.scaleY};
 }
 float UiCanvas::left() { return layout().left; }
 float UiCanvas::top() { return layout().top; }
-float UiCanvas::right() { const Layout& l = layout(); return l.left + 1024.0f * l.scale; }
-float UiCanvas::bottom() { const Layout& l = layout(); return l.top + 768.0f * l.scale; }
+float UiCanvas::right() { const Layout& l = layout(); return l.left + 1024.0f * l.scaleX; }
+float UiCanvas::bottom() { const Layout& l = layout(); return l.top + 768.0f * l.scaleY; }
 
-int UiCanvas::toVirtualX(int physical) { const Layout& l = layout(); return static_cast<int>(std::lround((physical - l.left) / l.scale)); }
-int UiCanvas::toVirtualY(int physical) { const Layout& l = layout(); return static_cast<int>(std::lround((physical - l.top) / l.scale)); }
-int UiCanvas::toPhysicalX(int virt) { const Layout& l = layout(); return static_cast<int>(std::lround(virt * l.scale + l.left)); }
-int UiCanvas::toPhysicalY(int virt) { const Layout& l = layout(); return static_cast<int>(std::lround(virt * l.scale + l.top)); }
+int UiCanvas::toVirtualX(int physical) { const Layout& l = layout(); return static_cast<int>(std::lround((physical - l.left) / l.scaleX)); }
+int UiCanvas::toVirtualY(int physical) { const Layout& l = layout(); return static_cast<int>(std::lround((physical - l.top) / l.scaleY)); }
+int UiCanvas::toPhysicalX(int virt) { const Layout& l = layout(); return static_cast<int>(std::lround(virt * l.scaleX + l.left)); }
+int UiCanvas::toPhysicalY(int virt) { const Layout& l = layout(); return static_cast<int>(std::lround(virt * l.scaleY + l.top)); }
 
 UiCanvas::Frame UiCanvas::placed(float x, float y)
 {
@@ -469,12 +467,12 @@ UiCanvas::Frame UiCanvas::placed(float x, float y)
         // an edge anchor only has to make up for the scaling of that offset: physical = fraction * W * (1 - scale)
         // + x * scale. Their 1024x768 rects are not at the frame's origin, so they are not confined.
         const float w = static_cast<float>(Resolution::width()), h = static_cast<float>(Resolution::height());
-        return {(std::clamp(x, 0.0f, 1.0f) - 0.5f) * w * (1.0f - l.scale) / l.scale,
-                (std::clamp(y, 0.0f, 1.0f) - 0.5f) * h * (1.0f - l.scale) / l.scale, false};
+        return {(std::clamp(x, 0.0f, 1.0f) - 0.5f) * w * (1.0f - l.scaleX) / l.scaleX,
+                (std::clamp(y, 0.0f, 1.0f) - 0.5f) * h * (1.0f - l.scaleY) / l.scaleY, false};
     }
-    const float originX = std::floor((Resolution::width() - 1024.0f * l.scale) * std::clamp(x, 0.0f, 1.0f));
-    const float originY = std::floor((Resolution::height() - 768.0f * l.scale) * std::clamp(y, 0.0f, 1.0f));
-    return {(originX - l.left) / l.scale, (originY - l.top) / l.scale, true};
+    const float originX = std::floor((Resolution::width() - 1024.0f * l.scaleX) * std::clamp(x, 0.0f, 1.0f));
+    const float originY = std::floor((Resolution::height() - 768.0f * l.scaleY) * std::clamp(y, 0.0f, 1.0f));
+    return {(originX - l.left) / l.scaleX, (originY - l.top) / l.scaleY, true};
 }
 
 UiCanvas::Frame UiCanvas::frame() { return t_frame; }
@@ -484,15 +482,16 @@ UiCanvas::Placement UiCanvas::placement()
     const float w = static_cast<float>(Resolution::width()), h = static_cast<float>(Resolution::height());
     const Layout& l = layout();
     Placement p;
-    p.scale = l.scale;
-    p.originX = l.left + t_frame.x * l.scale;
-    p.originY = l.top + t_frame.y * l.scale;
+    p.scaleX = l.scaleX;
+    p.scaleY = l.scaleY;
+    p.originX = l.left + t_frame.x * l.scaleX;
+    p.originY = l.top + t_frame.y * l.scaleY;
     if (t_frame.confine)
     {
         p.clipLeft = std::max(p.originX, 0.0f);
         p.clipTop = std::max(p.originY, 0.0f);
-        p.clipRight = std::min(p.originX + 1024.0f * l.scale, w);
-        p.clipBottom = std::min(p.originY + 768.0f * l.scale, h);
+        p.clipRight = std::min(p.originX + 1024.0f * l.scaleX, w);
+        p.clipBottom = std::min(p.originY + 768.0f * l.scaleY, h);
     }
     else
     {
@@ -507,8 +506,8 @@ UiCanvas::Placement UiCanvas::placement()
 UiCanvas::Bounds UiCanvas::screenBounds()
 {
     const Layout& l = layout();
-    return {-l.left / l.scale - t_frame.x, -l.top / l.scale - t_frame.y,
-            (Resolution::width() - l.left) / l.scale - t_frame.x, (Resolution::height() - l.top) / l.scale - t_frame.y};
+    return {-l.left / l.scaleX - t_frame.x, -l.top / l.scaleY - t_frame.y,
+            (Resolution::width() - l.left) / l.scaleX - t_frame.x, (Resolution::height() - l.top) / l.scaleY - t_frame.y};
 }
 
 bool UiCanvas::tracing() { return t_trace; }
@@ -555,8 +554,8 @@ void UiCanvas::enter(Mode mode)
             {
                 t_trace = true;
                 g_tracePopupsUntil = GetTickCount64() + 5000;
-                LOG("UiTrace: frame begins (canvas {},{} scale {:.3f}; popups traced for 5 s)", t_layout->left,
-                    t_layout->top, t_layout->scale);
+                LOG("UiTrace: frame begins (canvas {},{} scale {:.3f}x{:.3f}; popups traced for 5 s)", t_layout->left,
+                    t_layout->top, t_layout->scaleX, t_layout->scaleY);
             }
             g_traceKeyDown = down;
         }
@@ -618,12 +617,14 @@ void UiCanvas::install()
         return;
     }
     const float fit = std::min(Resolution::width() / 1024.0f, Resolution::height() / 768.0f);
-    auto centered = [](float scale) {
-        return Layout{scale, std::floor((Resolution::width() - 1024.0f * scale) / 2.0f),
-                      std::floor((Resolution::height() - 768.0f * scale) / 2.0f)};
-    };
-    g_game = centered(Config::ui.scale > 0.0f ? std::min(Config::ui.scale, fit) : fit);
-    g_menu = Config::ui.scaleMenus ? g_game : centered(fit);
+    const float scale = Config::ui.scale > 0.0f ? std::min(Config::ui.scale, fit) : fit;
+    g_game = {scale, scale, std::floor((Resolution::width() - 1024.0f * scale) / 2.0f),
+              std::floor((Resolution::height() - 768.0f * scale) / 2.0f)};
+    // The menus fill the screen without bars: the 1024x768 layout stretched to its aspect ratio, unless ScaleMode=Full
+    // gives them the fixed in-game size.
+    g_menu = Config::ui.scaleMenus && Config::ui.scale > 0.0f
+        ? g_game
+        : Layout{Resolution::width() / 1024.0f, Resolution::height() / 768.0f, 0.0f, 0.0f};
     if (Sacred::reBorn())
     {
         // ReBorn's in-game windows sit in screen coordinates: each has the offset of the edge it is anchored to
@@ -632,12 +633,12 @@ void UiCanvas::install()
         // centered windows where the canvas would be. Windows anchored elsewhere get frames (placed). The menus
         // are drawn in 1024x768 at the top left, as in the other builds.
         const float cx = static_cast<float>((Resolution::width() - 1024) / 2), cy = static_cast<float>((Resolution::height() - 768) / 2);
-        g_game = {g_game.scale, g_game.left - cx * g_game.scale, g_game.top - cy * g_game.scale};
-        g_startMenu = {g_menu.scale, g_menu.left - cx * g_menu.scale, g_menu.top - cy * g_menu.scale};
+        g_game = {g_game.scaleX, g_game.scaleY, g_game.left - cx * g_game.scaleX, g_game.top - cy * g_game.scaleY};
+        g_startMenu = {g_menu.scaleX, g_menu.scaleY, g_menu.left - cx * g_menu.scaleX, g_menu.top - cy * g_menu.scaleY};
     }
     g_enabled = true;
-    LOG("UI canvas: in game scale {:.3f} at {},{}, menus scale {:.3f} at {},{}", g_game.scale, g_game.left, g_game.top,
-        g_menu.scale, g_menu.left, g_menu.top);
+    LOG("UI canvas: in game scale {:.3f} at {},{}, menus scale {:.3f}x{:.3f} at {},{}", g_game.scaleX, g_game.left,
+        g_game.top, g_menu.scaleX, g_menu.scaleY, g_menu.left, g_menu.top);
 
     int redirected = 0;
     // World code that reads cMouse coordinates (getX / getY, or cMouse_instance() followed by reads of +4/+8) gets

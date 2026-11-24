@@ -184,17 +184,17 @@ DeviceProxy* DeviceProxy::instance()
 D3DVIEWPORT7 DeviceProxy::canvasViewport(const D3DVIEWPORT7& virt) const
 {
     const UiCanvas::Placement p = UiCanvas::placement();
-    const float s = p.scale;
+    const float sx = p.scaleX, sy = p.scaleY;
     const float l = std::max(p.clipLeft, p.originX);
     const float t = std::max(p.clipTop, p.originY);
     // ReBorn's windows have the offset of their anchor in their coordinates: they are not inside the canvas.
     const bool wholeScreen = Sacred::reBorn() && !UiCanvas::frame().confine;
-    const float r = wholeScreen ? p.clipRight : std::min(p.clipRight, p.originX + 1024.0f * s);
-    const float b = wholeScreen ? p.clipBottom : std::min(p.clipBottom, p.originY + 768.0f * s);
-    float x0 = std::max(p.originX + virt.dwX * s, l);
-    float y0 = std::max(p.originY + virt.dwY * s, t);
-    float x1 = std::min(p.originX + (virt.dwX + virt.dwWidth) * s, r);
-    float y1 = std::min(p.originY + (virt.dwY + virt.dwHeight) * s, b);
+    const float r = wholeScreen ? p.clipRight : std::min(p.clipRight, p.originX + 1024.0f * sx);
+    const float b = wholeScreen ? p.clipBottom : std::min(p.clipBottom, p.originY + 768.0f * sy);
+    float x0 = std::max(p.originX + virt.dwX * sx, l);
+    float y0 = std::max(p.originY + virt.dwY * sy, t);
+    float x1 = std::min(p.originX + (virt.dwX + virt.dwWidth) * sx, r);
+    float y1 = std::min(p.originY + (virt.dwY + virt.dwHeight) * sy, b);
     if (!UiCanvas::frame().confine && !Sacred::reBorn())
     {
         // An unconfined frame draws on the whole screen: a viewport reaching a 1024x768 edge (the full UI viewport the
@@ -212,7 +212,7 @@ D3DVIEWPORT7 DeviceProxy::canvasViewport(const D3DVIEWPORT7& virt) const
     vp.dwHeight = static_cast<DWORD>(std::max(1L, std::lround(y1 - y0)));
     if (UiCanvas::tracing())
     {
-        UiCanvas::trace(Fmt::format("viewport {},{} {}x{} -> {},{} {}x{} (clip {:.0f},{:.0f}..{:.0f},{:.0f}, origin {:.0f},{:.0f} scale {:.2f})", virt.dwX, virt.dwY, virt.dwWidth, virt.dwHeight, vp.dwX, vp.dwY, vp.dwWidth, vp.dwHeight, p.clipLeft, p.clipTop, p.clipRight, p.clipBottom, p.originX, p.originY, s));
+        UiCanvas::trace(Fmt::format("viewport {},{} {}x{} -> {},{} {}x{} (clip {:.0f},{:.0f}..{:.0f},{:.0f}, origin {:.0f},{:.0f} scale {:.2f}x{:.2f})", virt.dwX, virt.dwY, virt.dwWidth, virt.dwHeight, vp.dwX, vp.dwY, vp.dwWidth, vp.dwHeight, p.clipLeft, p.clipTop, p.clipRight, p.clipBottom, p.originX, p.originY, sx, sy));
     }
     return vp;
 }
@@ -235,8 +235,8 @@ bool DeviceProxy::beginOverlay3D(Overlay3D& restore)
     }
     // Where the game's viewport lands (x0, y0, w0, h0) ...
     const UiCanvas::Placement p = UiCanvas::placement();
-    const float x0 = p.originX + m_uiViewport.dwX * p.scale, y0 = p.originY + m_uiViewport.dwY * p.scale;
-    const float w0 = m_uiViewport.dwWidth * p.scale, h0 = m_uiViewport.dwHeight * p.scale;
+    const float x0 = p.originX + m_uiViewport.dwX * p.scaleX, y0 = p.originY + m_uiViewport.dwY * p.scaleY;
+    const float w0 = m_uiViewport.dwWidth * p.scaleX, h0 = m_uiViewport.dwHeight * p.scaleY;
     // ... inside the viewport the device gets: the frame's whole clip rect.
     D3DVIEWPORT7 vp = m_uiViewport;
     vp.dwX = static_cast<DWORD>(std::lround(p.clipLeft));
@@ -375,7 +375,7 @@ bool DeviceProxy::mapToCanvas(DWORD fvf, const void* verts, DWORD count, const v
     m_virtMaxX = m_virtMaxY = -1e30f;
     const UiCanvas::Placement place = UiCanvas::placement();
     const bool confine = UiCanvas::frame().confine;
-    const float s = place.scale, ox = place.originX, oy = place.originY;
+    const float sx = place.scaleX, sy = place.scaleY, ox = place.originX, oy = place.originY;
     float minX = 1e30f, minY = 1e30f, maxX = -1e30f, maxY = -1e30f;
     for (DWORD i = 0; i < count; ++i)
     {
@@ -384,8 +384,8 @@ bool DeviceProxy::mapToCanvas(DWORD fvf, const void* verts, DWORD count, const v
         m_virtMaxX = std::max(m_virtMaxX, p[0]);
         m_virtMinY = std::min(m_virtMinY, p[1]);
         m_virtMaxY = std::max(m_virtMaxY, p[1]);
-        p[0] = p[0] * s + ox;
-        p[1] = p[1] * s + oy;
+        p[0] = p[0] * sx + ox;
+        p[1] = p[1] * sy + oy;
         minX = std::min(minX, p[0]);
         maxX = std::max(maxX, p[0]);
         minY = std::min(minY, p[1]);
@@ -432,7 +432,7 @@ bool DeviceProxy::drawScreenDim(D3DPRIMITIVETYPE type, DWORD fvf, DWORD count, D
         }
     }
     const UiCanvas::Placement place = UiCanvas::placement();
-    const float midX = place.originX + 512.0f * place.scale, midY = place.originY + 384.0f * place.scale;
+    const float midX = place.originX + 512.0f * place.scaleX, midY = place.originY + 384.0f * place.scaleY;
     const float l = static_cast<float>(m_savedViewport.dwX), t = static_cast<float>(m_savedViewport.dwY);
     const float r = l + m_savedViewport.dwWidth, b = t + m_savedViewport.dwHeight;
     for (DWORD i = 0; i < count; ++i)
@@ -480,11 +480,11 @@ bool DeviceProxy::drawScreenBar(D3DPRIMITIVETYPE type, DWORD fvf, DWORD count, D
         }
     }
     const UiCanvas::Placement place = UiCanvas::placement();
-    const float midX = place.originX + 512.0f * place.scale;
+    const float midX = place.originX + 512.0f * place.scaleX;
     const float l = static_cast<float>(m_savedViewport.dwX), t = static_cast<float>(m_savedViewport.dwY);
     const float r = l + m_savedViewport.dwWidth, b = t + m_savedViewport.dwHeight;
     // Moved against the screen's edge with its height kept.
-    const float shift = top ? t - place.originY : b - (place.originY + 768.0f * place.scale);
+    const float shift = top ? t - place.originY : b - (place.originY + 768.0f * place.scaleY);
     for (DWORD i = 0; i < count; ++i)
     {
         auto* p = reinterpret_cast<float*>(m_scratch.data() + size_t(i) * stride);
@@ -722,8 +722,8 @@ HRESULT DeviceProxy::Clear(DWORD count, LPD3DRECT rects, DWORD flags, D3DCOLOR c
     if (m_ui && count && rects)
     {
         const UiCanvas::Placement place = UiCanvas::placement();
-        auto mapX = [&](LONG x) { return static_cast<LONG>(std::lround(x * place.scale + place.originX)); };
-        auto mapY = [&](LONG y) { return static_cast<LONG>(std::lround(y * place.scale + place.originY)); };
+        auto mapX = [&](LONG x) { return static_cast<LONG>(std::lround(x * place.scaleX + place.originX)); };
+        auto mapY = [&](LONG y) { return static_cast<LONG>(std::lround(y * place.scaleY + place.originY)); };
         std::vector<D3DRECT> mapped(rects, rects + count);
         for (D3DRECT& r : mapped)
         {

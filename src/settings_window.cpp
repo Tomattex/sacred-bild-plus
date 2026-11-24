@@ -221,7 +221,7 @@ namespace
             .values(L"Full", L"InGame")
             .enabledIf([](const Form& f) { return f.value(L"UI", L"Scale") != L"0"; })
             .tip(L"Use the UI size for the menus, the full-screen windows in game (options, save/load, map) and the "
-                 L"loading screen too. Off: those always fill the screen height.");
+                 L"loading screen too. Off: those are stretched over the whole screen.");
         ui.check(L"Place the HUD windows at the screen edges", {L"UI", L"Anchor"}, Config::ui.anchor)
             .tip(L"In game, place the taskbar, minimap, inventory and the other HUD windows at the screen edges "
                  L"(HUD layout tab). Off: the whole interface stays in the centered 1024 x 768 area.");

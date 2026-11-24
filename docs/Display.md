@@ -16,17 +16,18 @@ Default: the desktop resolution, instead of the hard-coded 1024x768.
 - World view: orthographic projection (including its depth range), visible area, culling and overhead-label layout
   scaled so the world keeps its original pixel density and simply shows more (including the 0.5x-2.0x zoom).
 - World view centered on the screen (the game assumed a 512/384 screen center in 17 places).
-- UI: the game's 1024x768 UI (menus, HUD, cursor, intro videos) is drawn into a centered canvas, scaled to fit the
-  screen height (`[UI] Scale`, `ScaleMode`, `LinearFilter`); the mouse is mapped into that canvas for the UI while
-  world picking keeps physical screen coordinates.
+- UI: the game's 1024x768 UI (menus, HUD, cursor) is drawn into a canvas: in game centered and scaled to fit the
+  screen height (`[UI] Scale`, `LinearFilter`); the menus, the full-screen windows in game and the loading screen
+  stretched over the whole screen, without black bars (`[UI] ScaleMode=Full`: the in-game canvas instead). The
+  mouse is mapped into that canvas for the UI while world picking keeps physical screen coordinates.
 - In game, the HUD windows are placed on the screen (`[UI] Anchor`, positions in `[UI.Layout]`); by default at the
   edges they had in the 1024x768 layout: taskbar and chat at the bottom, inventory bottom-left, minimap, character
   stats and equipment top-right, party portraits and the shop / chest / cube / trade windows top-left. Each keeps
   its own layout and runs in a shifted copy of the 1024x768 space (drawing, cursor, clicks, tooltips), so the
-  game's code for it is unchanged; menus and full-screen windows (map, options, save) stay centered. Tooltips and
+  game's code for it is unchanged; menus and full-screen windows (map, options, save) fill the screen. Tooltips and
   the item on the cursor use the whole screen, the help screen's texts (H key) stay next to the windows they
   explain, and the escape menu and message boxes dim the whole screen.
-- Loading screen (GDI) drawn into a 1024x768 surface and scaled like the menus, splash centered; savegame
+- Loading screen (GDI) drawn into a 1024x768 surface and stretched like the menus, splash centered; savegame
   thumbnails taken from the screen center.
 - The cinematic letterbox bars run across the whole screen.
 - Always a 32-bit display mode (`GFX32 : 0` in `Settings.cfg` is ignored).
