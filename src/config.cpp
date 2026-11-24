@@ -144,7 +144,7 @@ namespace
         }
         Config::display.width = std::min(w, 16384);
         Config::display.height = std::min(h, 16384);
-        Config::display.frame = Config::Display::Frame::Always;
+        Config::display.mode = Config::Display::Mode::Windowed;
         Config::display.automationWindow = true;
         Config::display.hasPosition = fields >= 4;
         Config::display.x = x;
@@ -168,10 +168,10 @@ void ConfigFile::load(const std::wstring& gameDir)
     Config::ddraw.mediaFoundation = Config::ddraw.d3d9 || readBool(ini, L"DDraw", L"MediaFoundation", Config::ddraw.mediaFoundation);
     Config::display.width = readInt(ini, L"Display", L"Width", Config::display.width);
     Config::display.height = readInt(ini, L"Display", L"Height", Config::display.height);
-    const std::wstring borderless = readString(ini, L"Display", L"Borderless", L"auto");
-    Config::display.frame = _wcsicmp(borderless.c_str(), L"auto") == 0 ? Config::Display::Frame::Auto
-        : readBool(ini, L"Display", L"Borderless", true)      ? Config::Display::Frame::Never
-                                                               : Config::Display::Frame::Always;
+    const std::wstring mode = readString(ini, L"Display", L"Mode", L"Borderless");
+    Config::display.mode = _wcsicmp(mode.c_str(), L"Fullscreen") == 0 ? Config::Display::Mode::Fullscreen
+        : _wcsicmp(mode.c_str(), L"Windowed") == 0                    ? Config::Display::Mode::Windowed
+                                                                       : Config::Display::Mode::Borderless;
     applyAutomationWindow();
     Config::display.resizable = !Config::display.automationWindow && readBool(ini, L"Display", L"Resizable", true);
     Config::display.clipCursor = readInt(ini, L"Display", L"ClipCursor", Config::display.clipCursor) != 0;
@@ -299,11 +299,11 @@ void ConfigFile::load(const std::wstring& gameDir)
     Config::debug.skinCheck = readInt(ini, L"Debug", L"SkinCheck", Config::debug.skinCheck) != 0;
     Config::debug.animationCheck = readInt(ini, L"Debug", L"AnimationCheck", Config::debug.animationCheck) != 0;
 
-    LOG("Config: HideSettingsWindow={} Backend={} D3D9='{}' MediaFoundation={} Width={} Height={} Borderless={} ClipCursor={} FpsLimit={} FpsLimitInactive={} VSync={} MaxFrameLatency={} UI.Scale={} UI.ScaleMode={} UI.LinearFilter={} UI.Anchor={} TextureBudgetMB={} Batch={} "
+    LOG("Config: HideSettingsWindow={} Backend={} D3D9='{}' MediaFoundation={} Width={} Height={} Mode={} ClipCursor={} FpsLimit={} FpsLimitInactive={} VSync={} MaxFrameLatency={} UI.Scale={} UI.ScaleMode={} UI.LinearFilter={} UI.Anchor={} TextureBudgetMB={} Batch={} "
         "BatchNoClip={} BatchVertexBuffer={} BatchModels={} BatchGround={} BatchSprites={} GroundMesh={} GpuSkinning={} SMAA={} TextureFilter={} OffscreenPoses={} AsyncAnimation={} AnimationThreads={} RecordIndex={} SoundLock={} FastMath={} WarmFileCache={} Atlas={} ({} px, {} pages, textures <= {}) "
         "Screenshot.Format={} Net.Relay={} Net.Port={} Net.Hosts='{}' Net.NoDelay={} Net.JoinTimeout={} Net.Udp={} Net.Matchmaker='{}' Net.Publish={} Net.Prefer={} D3DStats={} Profiler={} ({} us) UiTrace={} CrashDump={} MovieFallback={} SkinCheck={} AnimationCheck={}",
         !Config::launcher.settingsWindow, Config::ddraw.d3d9 ? "d3d9" : "chain", ascii(Config::ddraw.d3d9Path), Config::ddraw.mediaFoundation, Config::display.width, Config::display.height,
-        Config::display.frame == Config::Display::Frame::Auto ? "auto" : Config::display.frame == Config::Display::Frame::Never ? "1" : "0", Config::display.clipCursor, Config::display.fpsLimit, Config::display.fpsLimitInactive,
+        Config::display.mode == Config::Display::Mode::Fullscreen ? "Fullscreen" : Config::display.mode == Config::Display::Mode::Windowed ? "Windowed" : "Borderless", Config::display.clipCursor, Config::display.fpsLimit, Config::display.fpsLimitInactive,
         Config::display.vsync, Config::display.maxFrameLatency, Config::ui.scale,
         Config::ui.scaleMenus ? "Full" : "InGame", Config::ui.linearFilter, Config::ui.anchor,
         Config::render.textureBudgetMB, Config::render.batch, Config::render.batchNoClip, Config::render.batchVertexBuffer,

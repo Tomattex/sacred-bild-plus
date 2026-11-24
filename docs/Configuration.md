@@ -1,6 +1,6 @@
 # Configuration (`SacredBild.ini`)
 
-Before the game starts, a settings window offers the settings below with tooltips: General (resolution, window frame,
+Before the game starts, a settings window offers the settings below with tooltips: General (resolution, display mode,
 frame limit, VSync, UI size, renderer), Advanced (everything else; the controller's buttons are set in game) and HUD layout (`[UI.Layout]`). Play saves the
 changed ones to `SacredBild.ini`; Exit quits. "Don't show this window
 again" sets `[Launcher] HideSettingsWindow=1`; holding Shift as the game starts shows it anyway.
@@ -13,9 +13,9 @@ tabs, Start is Play. Text fields need the keyboard.
 |---|---|---|---|
 | Launcher | HideSettingsWindow | 0 | 1 = no settings window before the game starts; holding Shift as the game starts shows it anyway. |
 | Display | Width, Height | 0 | Render resolution; 0 = desktop. 1024x768 = unpatched game. |
-| Display | Borderless | auto | Main window frame: `auto` = a frame when the window is smaller than the screen, `1` = never (the game's frameless window), `0` = always. The client area is `Width` x `Height` either way. |
-| Display | Resizable | 1 | A window with a frame can be resized and "maximized" (the largest window of the picture's proportions in the work area). The game keeps its resolution; the picture is stretched to the window. See [Display](Display.md#resizable-window). Not with `Borderless` windows or in automation runs. |
-| Display | (automation) | | With `-gear-auto` the `Width`, `Height` and `Borderless` above are ignored: a framed 1600x900 window in the work area's bottom-right corner, `-gear-window=WxH[+X+Y]` changes it (see [Gear](Gear.md#automation)); `-gear-ui-scale=N` overrides `[UI] Scale` the same way. |
+| Display | Mode | Borderless | `Borderless` = a frameless window over the whole monitor; a `Width` x `Height` other than the monitor's is stretched to it. `Fullscreen` = exclusive: the display switches to `Width` x `Height` (Direct3D 9 backend; a size that is no display mode falls back to `Borderless`). `Windowed` = a framed window whose client area is `Width` x `Height`. |
+| Display | Resizable | 1 | A window with a frame can be resized and "maximized" (the largest window of the picture's proportions in the work area). The game keeps its resolution; the picture is stretched to the window. See [Display](Display.md#resizable-window). Only with `Mode=Windowed`, not in automation runs. |
+| Display | (automation) | | With `-gear-auto` the `Width`, `Height` and `Mode` above are ignored: a framed 1600x900 window in the work area's bottom-right corner, `-gear-window=WxH[+X+Y]` changes it (see [Gear](Gear.md#automation)); `-gear-ui-scale=N` overrides `[UI] Scale` the same way. |
 | Display | ClipCursor | 1 | Confine the mouse to the game window while it is in the foreground; hold Alt to move it out. |
 | Display | FpsLimit | 60 | Frame limit in game and in the menus; 0 = off. |
 | Display | FpsLimitInactive | 20 | Frame limit while the game is in the background, in game and in the menus; 0 = off. |

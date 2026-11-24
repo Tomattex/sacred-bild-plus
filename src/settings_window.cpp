@@ -157,16 +157,18 @@ namespace
         ui.page(L"General");
         ui.group(L"Display");
         ui.combo(L"Resolution:", {L"Display", L"Width,Height"}, resolutions(), resolution())
-            .tip(L"The resolution the game renders at. Desktop = the screen's resolution; a smaller one plays in a "
-                 L"window. 1024 x 768 runs the original game without patches.");
-        ui.combo(L"Window frame:", {L"Display", L"Borderless"},
-              {{L"Automatic", L"auto"}, {L"Borderless", L"1"}, {L"Window frame", L"0"}},
-              Config::display.frame == Config::Display::Frame::Auto ? L"auto" : Config::display.frame == Config::Display::Frame::Never ? L"1" : L"0")
-            .tip(L"Automatic: a frame with a title bar (to move the window) when the window is smaller than the screen, "
-                 L"none when it fills the screen.\nBorderless: never a frame.\nWindow frame: always a frame.\n"
-                 L"The area inside the frame has the chosen resolution either way.");
-        ui.check(L"Resizable window (with a frame)", {L"Display", L"Resizable"}, Config::display.resizable)
-            .enabledIf([](const Form& f) { return f.value(L"Display", L"Borderless") != L"1"; })
+            .tip(L"The resolution the game renders at. Desktop = the screen's resolution. 1024 x 768 runs the original "
+                 L"game without patches.");
+        ui.combo(L"Display mode:", {L"Display", L"Mode"},
+              {{L"Fullscreen windowed", L"Borderless"}, {L"Fullscreen", L"Fullscreen"}, {L"Windowed", L"Windowed"}},
+              Config::display.mode == Config::Display::Mode::Fullscreen ? L"Fullscreen"
+                  : Config::display.mode == Config::Display::Mode::Windowed ? L"Windowed" : L"Borderless")
+            .tip(L"Fullscreen windowed: a window without a frame over the whole screen; another resolution than the "
+                 L"screen's is stretched to it.\nFullscreen: the screen switches to the chosen resolution (needs the "
+                 L"SacredBild (Direct3D 9) renderer).\nWindowed: a window with a title bar, its inside at the chosen "
+                 L"resolution.");
+        ui.check(L"Resizable window", {L"Display", L"Resizable"}, Config::display.resizable)
+            .enabledIf([](const Form& f) { return f.value(L"Display", L"Mode") == L"Windowed"; })
             .tip(L"A window with a frame can be resized and maximized. The game keeps its resolution: the picture is "
                  L"stretched to the window, which keeps the picture's proportions.");
         const int refresh = displayRefresh();

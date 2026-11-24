@@ -7,10 +7,16 @@ What SacredBild changes about how Sacred looks and behaves on a modern system. T
 
 Default: the desktop resolution, instead of the hard-coded 1024x768.
 
-- Back buffer and window at the target size: borderless when it fills the screen, otherwise with a frame (caption
-  and system menu: it can be moved and minimized) around a client area of that size (`[Display] Borderless`). Its
-  close button is disabled so a stray click doesn't end the game (Alt+F4 still quits).
-- A window with a frame can be resized (`[Display] Resizable`, [see below](#resizable-window)).
+- Back buffer at the target size, shown as `[Display] Mode` says:
+  - `Borderless` (fullscreen windowed): a frameless window over the whole monitor; a target size other than the
+    monitor's is stretched to it (DWM scales the presented frame, the cursor is converted as for a
+    [resized window](#resizable-window)).
+  - `Fullscreen`: exclusive; the display switches to the target size at the highest refresh rate it has. Direct3D
+    manages the window (Alt+Tab minimizes it and brings the desktop's mode back). A size that is no display mode,
+    or the chained ddraw, falls back to `Borderless`.
+  - `Windowed`: a frame (caption and system menu: it can be moved and minimized) around a client area of the target
+    size. Its close button is disabled so a stray click doesn't end the game (Alt+F4 still quits); it can be
+    resized (`[Display] Resizable`, [see below](#resizable-window)).
 - Automation runs (`-gear-auto`) always use a framed 1600x900 window at the work area's bottom-right, whatever the
   settings say; `-gear-window=WxH[+X+Y]` overrides ([Gear](Gear.md#automation)).
 - World view: orthographic projection (including its depth range), visible area, culling and overhead-label layout

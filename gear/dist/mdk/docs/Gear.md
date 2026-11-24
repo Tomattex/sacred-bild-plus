@@ -367,7 +367,7 @@ savegame loading, screenshots, files, quitting).
 | `-gear-load=N` (`SACREDGEAR_LOAD`) | Loads savegame N (`Save\GAMEnn.PAK`, 0 the quicksave; through the file overlay) as soon as the main menu is up. A missing savegame ends the run with exit code 4 (the game itself would crash). |
 | `-gear-mods=a,b` (`SACREDGEAR_MODS`) | Loads only these mods. |
 | `-gear-instance=NAME` (`SACREDGEAR_INSTANCE`) | Names the run, default `pid<PID>`. See [Parallel runs](#parallel-runs). |
-| `-gear-window=WxH[+X+Y]` (`SACREDGEAR_WINDOW`) | SacredBild only: a framed window with that client size (default 1600x900, at least 1024x768) in the bottom-right of the primary monitor's work area, or at screen pixel X,Y. `[Display] Width`, `Height` and `Borderless` are ignored. |
+| `-gear-window=WxH[+X+Y]` (`SACREDGEAR_WINDOW`) | SacredBild only: a framed window with that client size (default 1600x900, at least 1024x768) in the bottom-right of the primary monitor's work area, or at screen pixel X,Y. `[Display] Width`, `Height` and `Mode` are ignored. |
 | `-gear-timeout=SECONDS` (`SACREDGEAR_TIMEOUT`) | The watchdog: default 300, 0 = off. A run that takes longer, a game window that does not answer or an in-game run without a frame for 60 s quits with exit code 3. |
 | `-gear-shared-input` (`SACREDGEAR_SHARED_INPUT=1`) | Turns the input isolation off (below). |
 
