@@ -139,6 +139,9 @@ namespace Sacred::Addr
     // The menu loop's `test [ui+8], 1; jz skip; push 0x14; call Sleep` (cUI_Manager thread): a 20 ms sleep every menu
     // frame, ~31 ms at the default timer resolution, which capped the menus at ~30 fps. Address of the jz.
     inline uintptr_t menuLoopSleepJump{};               // ENG 0075713C
+    // The menus' water (main menu, character selection), thiscall (float seconds): counts its drop and wave timers
+    // down by the time passed, then steps the wave simulation (0x75F010) once per call, i.e. once per menu frame.
+    inline Thiscall<void(void* self, float seconds)> menuWater_update{}; // ENG 0075EF40
     // cEngine_updateWorldCursor (0x611E70) asks the UI whether the cursor is over a window before picking.
     inline uintptr_t worldCursorUiTestCall{};           // ENG 00611EE3
     // Its draw of a hover cursor (talk, trade, use, attack, ...): pushed (cMouse ENG 00655060), cMouse_renderCursor,

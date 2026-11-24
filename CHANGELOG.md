@@ -12,3 +12,5 @@
 - `[Display] Mode` (settings window: Display mode) replaces `Borderless`: `Borderless` (fullscreen windowed, the
   default) covers the whole monitor and stretches a lower resolution to it, `Fullscreen` switches the display to the
   chosen resolution (exclusive), `Windowed` is a window with a title bar. The old `Borderless` key is ignored.
+- The water in the main menu and the character selection moves at the same speed at any frame rate (it sped up
+  with the frame limit).

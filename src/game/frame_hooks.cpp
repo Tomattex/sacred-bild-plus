@@ -158,6 +158,23 @@ namespace
         return limit;
     }
 
+    // The menus' water steps its waves once per call, which made them as fast as the menu's frame rate: stepped at the
+    // rate the original menus ran (~30 fps, Sleep(20) at the default 15.6 ms timer) instead, each step with its share
+    // of the time. A long stall catches up a few steps, not all of them.
+    decltype(Addr::menuWater_update)::Ptr g_origWaterUpdate = nullptr;
+
+    void __fastcall hookWaterUpdate(void* self, void* edx, float seconds)
+    {
+        constexpr float kStep = 1.0f / 30.0f;
+        static float pending = 0.0f;    // the menu thread's only
+        pending = std::min(pending + std::max(seconds, 0.0f), 4.0f * kStep);
+        while (pending >= kStep)
+        {
+            pending -= kStep;
+            g_origWaterUpdate(self, edx, kStep);
+        }
+    }
+
     void __cdecl hookLimiter(double, uint32_t fps)
     {
         t_limiterCalled = true;
@@ -398,6 +415,7 @@ void FrameHooks::install()
     Patch::hook(g_origUiRender, Addr::cUI_Manager_render, &hookUiRender, "cUI_Manager::render");
     Patch::hook(g_origRenderThreadRun, Addr::cEngine_renderThreadRun, &hookRenderThreadRun, "cEngine::renderThreadRun");
     Patch::hook(g_origLimiter, Addr::frameLimiter, &hookLimiter, "frameLimiter");
+    Patch::hook(g_origWaterUpdate, Addr::menuWater_update, &hookWaterUpdate, "menu water update");
     // The menu loop sleeps 20 ms every frame before drawing (jz over `push 14h; call Sleep` -> jmp), which at the
     // default timer resolution is ~31 ms: the menus ran at ~30 fps whatever [Display] FpsLimit said. paceFrame
     // paces them now.
