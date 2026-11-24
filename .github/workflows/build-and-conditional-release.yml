@@ -177,7 +177,7 @@ jobs:
         run: python3 tools/make_dsoal_index.py --check
 
   create-release:
-    if: github.event_name == 'push' && (github.ref_name == 'main' || github.ref_type == 'tag')
+    if: github.event_name == 'push' && github.ref_type == 'tag'
     needs: [build]
     runs-on: ubuntu-latest
 
@@ -206,33 +206,7 @@ jobs:
             Write-Host "Created $zipName"
           }
 
-      - name: Calculate nightly release info
-        if: github.ref_type != 'tag'
-        id: nightly-info
-        shell: pwsh
-        run: |
-          $shortHash = $env:GITHUB_SHA.Substring(0, 7)
-          $date = Get-Date -Format 'dd.MM.yyyy HH:mm'
-          "tag=nightly-$env:GITHUB_RUN_ID" >> $env:GITHUB_OUTPUT
-          "name=Nightly - $shortHash ($date)" >> $env:GITHUB_OUTPUT
-
-      - name: Create nightly release
-        if: github.ref_type != 'tag'
-        uses: ncipollo/release-action@v1.21.0
-        with:
-          allowUpdates: true
-          artifactErrorsFailBuild: true
-          artifacts: "${{ steps.download-artifact.outputs.download-path }}/*.zip"
-          commit: ${{ github.sha }}
-          generateReleaseNotes: true
-          name: ${{ steps.nightly-info.outputs.name }}
-          prerelease: true
-          removeArtifacts: true
-          tag: ${{ steps.nightly-info.outputs.tag }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create regular release
-        if: github.ref_type == 'tag'
+      - name: Create release
         uses: ncipollo/release-action@v1.21.0
         with:
           allowUpdates: true

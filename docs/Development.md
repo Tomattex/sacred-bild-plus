@@ -138,8 +138,7 @@ python tools/check_hooks.py         # checks the hooks against the exe (English,
 The DLL is statically linked against the CRT and imports only Windows system DLLs (`d3d9.dll` is loaded at run time).
 vcpkg builds SDL3 with its gamepad support only (`triplets/x86-windows-static.cmake`, an overlay of vcpkg's triplet).
 For development, symlink `ddraw.dll`/`ddraw.pdb` in the game folder to the build output instead of installing.
-`.github/workflows/` builds every push and pull request; pushes to `main` publish a nightly prerelease, `v*` tags a
-release.
+`.github/workflows/` builds every push and pull request; only `v*` tags publish a release.
 
 ## Sacred Gear
 
