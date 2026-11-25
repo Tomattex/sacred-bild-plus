@@ -32,3 +32,5 @@
   the font's codes (`\c` colour, `\g` sprite). A colour replaces the name's colour (or the selection's) instead of
   adding codes; the palette shows the length used and dims what no longer fits. Text fields edit these codes as one
   character.
+- `[Display] SkipIntro` (on by default; settings window: Display): the Ascaron and publisher logo movies at the
+  start are not played. The story movies still are.

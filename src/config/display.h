@@ -29,6 +29,7 @@ namespace Config
         // window (aspect ratio kept, black bars). Not in automation runs.
         bool resizable = true;
         bool clipCursor = true;       // mouse confined to the game window while it is in the foreground
+        bool skipIntro = true;        // the logo movies at the start (Ascaron's, the publisher's) are not played
         int fpsLimit = 60;            // frame limit in game and in the menus (the game uses 60); 0 = off
         int fpsLimitInactive = 20;    // frame limit (menus and game) while none of the game's windows is in the foreground; 0 = off
         // Direct3D 9 backend: wait for the display's refresh when presenting, and how many frames the CPU may

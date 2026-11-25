@@ -911,8 +911,22 @@ namespace
         return outcome.skipped ? -1 : 0;
     }
 
+    // The logo movies at the start: Ascaron's and the publisher's.
+    bool introMovie(const char* path)
+    {
+        const char* slash = std::strrchr(path, '\\');
+        const char* name = slash ? slash + 1 : path;
+        return _stricmp(name, "ASCARON.WMV") == 0 || _stricmp(name, "OEM.WMV") == 0;
+    }
+
     HRESULT __cdecl hookOpenStream(const char* path, IUnknown* ddraw, IUnknown** stream)
     {
+        if (path && stream && Config::display.skipIntro && introMovie(path))
+        {
+            LOG("Movie: {} left out ([Display] SkipIntro)", path);
+            *stream = nullptr;      // its caller then plays nothing
+            return E_FAIL;
+        }
         if (!Config::ddraw.mediaFoundation || !path || !stream)
         {
             return g_origOpenStream(path, ddraw, stream);

@@ -174,6 +174,9 @@ namespace
             .enabledIf([](const Form& f) { return f.value(L"Display", L"Mode") == L"Windowed"; })
             .tip(L"A window with a frame can be resized and maximized. The game keeps its resolution: the picture is "
                  L"stretched to the window, which keeps the picture's proportions.");
+        ui.check(L"Skip the logo movies at the start", {L"Display", L"SkipIntro"}, Config::display.skipIntro)
+            .tip(L"Start without the Ascaron and publisher logo movies. The story movies (the intro of a new game, the "
+                 L"acts) still play.");
         ui.group(L"Frame rate");
         const int refresh = displayRefresh();
         std::vector<int> limits{0, 30, 60, 75, 90, 120, 144, 165, 240};
