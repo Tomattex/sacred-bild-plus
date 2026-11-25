@@ -37,7 +37,7 @@ The host's relay logs to `SacredBild-server.log`, the LAN list to `SacredBild.lo
 
 ## Online games (matchmaker)
 
-Everyone sets `[Net] Matchmaker` to the same server and `Udp=1` (the settings window: Network tab). The host creates
+Everyone sets `[Net] Matchmaker` to the same server and `Udp=1` (the settings window: Network page). The host creates
 a LAN game as usual; it shows up in everyone's LAN list, with the host's public address. Joining it:
 
 1. the player asks the matchmaker to introduce it to the host; both send each other a few UDP packets, which opens

@@ -215,7 +215,7 @@ namespace
         {
             return 0;   // SacredBild's own screen has the keyboard and mouse
         }
-        if (TextEdit::translateKey(message, wParam))
+        if (TextEdit::message(message, wParam))
         {
             return 0;
         }

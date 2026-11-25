@@ -174,6 +174,7 @@ SACRED = [
     ('cUI_EditControl_receiveEvent', 0x00737AC0, 'func'),
     ('cUI_EditControl_render', 0x007382F0, 'func'),
     ('editRenderFontCall', 0x0073850B, 'code'),
+    ('menuVersionPosition', 0x00759613, 'code'),
     ('g_hasAddon', 0x0182EBEC, 'data'),
     ('g_gameSettings', 0x0182EE78, 'data'),
     ('g_portalTexts', 0x017EA420, 'data'),

@@ -28,6 +28,7 @@
 #include "game/text_edit.h"
 #include "game/ui_anchor.h"
 #include "game/ui_windows.h"
+#include "game/version_label.h"
 #include "game/ui_canvas.h"
 #include "game/world_passes.h"
 #include "net/connection.h"
@@ -142,6 +143,7 @@ void Sacred::installHooks()
     Movie::install();
     Screenshot::install();
     TextEdit::install();
+    VersionLabel::install();
     MapCache::install();
     SoundLock::install();
     GroundQuads::install();
