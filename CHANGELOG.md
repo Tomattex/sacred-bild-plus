@@ -22,3 +22,5 @@
   (arrows, Home / End, click, Ctrl for words), selection (Shift, Ctrl+A, mouse drag), Delete, and Ctrl+C / X / V
   with the Windows clipboard.
 - The menus show "SacredBild+" in gold under the game's version in the bottom right corner.
+- The character name field has a palette on right click: colours and some of the game's sprites go into the name as
+  the font's codes (`\c` colour, `\g` sprite). Text fields edit these codes as one character.

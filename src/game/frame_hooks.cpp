@@ -10,6 +10,7 @@
 #include "game/resolution.h"
 #include "game/sacred_addr.h"
 #include "game/screenshot.h"
+#include "game/text_edit.h"
 #include "game/ui_canvas.h"
 #include "game/ui_state.h"
 #include "game/ui_windows.h"
@@ -383,6 +384,7 @@ namespace
             UiCanvas::Scope ui;
             g_origUiRender(self, edx, device);
             VersionLabel::draw(self, device);
+            TextEdit::drawOverlay(device);
         }
         UiWindows::publishDrawn();
         D3DStats::mark(D3DStats::TGameAfterUi);
