@@ -1,16 +1,18 @@
 #pragma once
 #include <windows.h>
+#include <commctrl.h>
 #include <cstdint>
 #include <deque>
 #include <functional>
 #include <string>
 #include <vector>
 
-// Settings forms declared in code, ImGui-style: pages (tabs), columns, group boxes and rows of controls, each control
-// bound to an ini key. The form sizes everything from its text, builds the dialog templates and runs them modally;
-// afterwards changes() lists the keys whose values the user changed. A controller works the form too: the D-pad or left
-// stick moves between the controls (left and right change a combo box's value), A clicks or opens, B closes an open
-// list, LB and RB switch tabs, Start is OK.
+// Settings forms declared in code, ImGui-style: pages, columns, titled sections and rows of controls, each control bound
+// to an ini key. The form sizes everything from its text, builds the dialog templates and runs them modally; afterwards
+// changes() lists the keys whose values the user changed. It is drawn in Sacred's colours (dark leather, bronze lines,
+// gold for what is chosen, parchment text): a banner on top, a row of page buttons under it. A controller works the form
+// too: the D-pad or left stick moves between the controls (left and right change a combo box's value), A clicks or
+// opens, B closes an open list, LB and RB switch pages, Start is OK.
 //
 //     ui.page(L"General");
 //     ui.group(L"Display");
@@ -83,6 +85,7 @@ namespace Ui
         std::function<void(Form&)> m_click;
         int m_fixedWidth = 0;
         bool m_digits = false;
+        bool m_dim = false;      // a label or paragraph whose control is grayed out
 
         int m_page = -1;  // -1 = the footer
         int m_id = 0;     // the label in front of it: m_id + 1
@@ -102,8 +105,9 @@ namespace Ui
             Failed,
         };
 
-        // Layout: a page is a tab, column() starts its next column, group() a group box; rows stack downwards.
-        // Controls declared after footer() go into the bottom row, left of the OK and Cancel buttons.
+        // Layout: a page is one of the buttons under the banner, column() starts its next column, group() a titled
+        // section; rows stack downwards. Controls declared after footer() go into the bottom row, left of the OK and
+        // Cancel buttons.
         void page(const wchar_t* title);
         void column();
         void group(const wchar_t* title);
@@ -128,6 +132,8 @@ namespace Ui
 
         void buttons(const wchar_t* ok, const wchar_t* cancel);
         void icons(HICON big, HICON small);
+        // A strip across the top, `height` dialog units high, drawn by `paint` into the rect it gets (pixels).
+        void banner(int height, std::function<void(HDC dc, const RECT& rect)> paint);
 
         // Shows the form modally. `module` holds the visual styles manifest (form.rc).
         Result run(HMODULE module, const wchar_t* title);
@@ -174,7 +180,9 @@ namespace Ui
         DialogTemplate pageTemplate(const Page& page) const;
         void addControl(DialogTemplate& dialog, const Control& control) const;
         void init(HWND dlg);
+        void createFonts();
         void showPage(int index);
+        int navIndex(HWND control) const;   // -1: not a page button
         void command(WORD id);
         void updateEnabled();
         void addTooltips();
@@ -183,6 +191,9 @@ namespace Ui
         void padSideways(HWND focus, bool right);
         void padPage(int step);
         void focusOn(HWND control);
+        void paint(HWND window, HDC dc) const;
+        HBRUSH colors(UINT msg, HDC dc, HWND control) const;
+        LRESULT customDraw(const NMCUSTOMDRAW& draw) const;
         std::wstring read(const Control& control) const;
         void write(Control& control, const std::wstring& value);
         std::vector<const Control*> bound(const wchar_t* section, const wchar_t* name) const;
@@ -198,14 +209,23 @@ namespace Ui
         std::wstring m_ok = L"OK";
         std::wstring m_cancel = L"Cancel";
         HICON m_icons[2] = {};
+        int m_bannerHeight = 0;
+        std::function<void(HDC, const RECT&)> m_bannerPaint;
 
         HMODULE m_module = nullptr;
         Size m_page = {};    // page size, dialog units
         Size m_window = {};
+        int m_navY = 0;      // the page buttons, the pages and the footer, dialog units from the top
+        int m_pagesY = 0;
         int m_footerY = 0;
         HWND m_dlg = nullptr;
-        HWND m_tabs = nullptr;
+        std::vector<HWND> m_nav;
+        int m_shown = 0;
         HWND m_tooltip = nullptr;
+        HFONT m_headingFont = nullptr;     // sections and the page buttons
+        HFONT m_buttonFont = nullptr;
+        HBRUSH m_background = nullptr;
+        HBRUSH m_input = nullptr;
         uint32_t m_padHeld = 0;    // buttons, the left stick as the D-pad
         DWORD m_padRepeat = 0;     // when a held direction moves again
         bool m_padUsed = false;

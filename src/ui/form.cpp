@@ -4,7 +4,6 @@
 #include "log.h"
 
 #include <commctrl.h>
-#include <uxtheme.h>
 #include <algorithm>
 #include <climits>
 #include <cstring>
@@ -13,16 +12,29 @@ namespace
 {
     constexpr const wchar_t* kFont = L"Segoe UI";
     constexpr WORD kFontSize = 9;
+    constexpr const wchar_t* kSerif = L"Palatino Linotype";     // section titles, page buttons, OK and Cancel
+
+    // Sacred's colours: dark leather, bronze lines, gold for titles and what is chosen, parchment text.
+    constexpr COLORREF kBackground = RGB(24, 19, 15);
+    constexpr COLORREF kInput = RGB(13, 10, 8);
+    constexpr COLORREF kLine = RGB(86, 67, 44);
+    constexpr COLORREF kBoxEdge = RGB(120, 94, 60);     // a check box's border
+    constexpr COLORREF kGold = RGB(212, 175, 105);
+    constexpr COLORREF kGoldBright = RGB(240, 208, 142);
+    constexpr COLORREF kText = RGB(224, 212, 188);
+    constexpr COLORREF kTextDim = RGB(146, 132, 110);
+    constexpr COLORREF kButtonFill = RGB(62, 47, 30);
+    constexpr COLORREF kButtonFillHot = RGB(84, 63, 38);
 
     // Layout, in dialog units.
-    constexpr int kMargin = 7;           // around the window's contents
-    constexpr int kPagePadding = 6;      // inside a tab
-    constexpr int kColumnGap = 8;
+    constexpr int kMargin = 8;           // around the window's contents
+    constexpr int kPagePadding = 2;      // inside the page area
+    constexpr int kColumnGap = 14;
     constexpr int kMinColumnWidth = 180;
-    constexpr int kBoxPadding = 8;       // group box: left and right of its rows, above (below the title) and below
-    constexpr int kBoxTop = 13;
-    constexpr int kBoxBottom = 6;
-    constexpr int kBlockGap = 6;
+    constexpr int kBoxPadding = 2;       // a titled section: left and right of its rows, its title above them
+    constexpr int kBoxTop = 15;
+    constexpr int kBoxBottom = 2;
+    constexpr int kBlockGap = 9;
     constexpr int kGap = 4;              // between controls in a row, and a label and its control
     constexpr int kRowGap = 4;
     constexpr int kIndent = 10;
@@ -32,11 +44,11 @@ namespace
     constexpr int kCheckBoxWidth = 16;   // the box and the gap to its text
     constexpr int kComboArrowWidth = 20;
     constexpr int kMinInputWidth = 40;
-    constexpr int kButtonWidth = 50;
-    constexpr int kButtonHeight = 14;
+    constexpr int kButtonWidth = 56;
+    constexpr int kButtonHeight = 16;
     constexpr int kComboDropHeight = 150;
-    constexpr int kTabChromeX = 6;       // tab control around its pages
-    constexpr int kTabChromeY = 18;
+    constexpr int kNavHeight = 15;       // the page buttons
+    constexpr int kNavPadding = 12;      // beside a page button's title
 
     constexpr UINT_PTR kGamepadTimer = 1;
     constexpr UINT kGamepadMs = 16;
@@ -44,7 +56,7 @@ namespace
     constexpr DWORD kRepeatMs = 100;
     constexpr float kStickPush = 0.5f;      // the left stick as the D-pad past this
 
-    constexpr int kTabsId = 900;
+    constexpr int kNavId = 800;          // the page buttons: kNavId + page
     constexpr int kFirstId = 1000;       // controls: kFirstId + 2 * index, their labels one more
 
     // The predefined control classes' atoms in dialog templates.
@@ -125,6 +137,161 @@ namespace
             s += (i ? L"," : L"") + parts[i];
         }
         return s;
+    }
+
+    // The page buttons' titles are drawn in the serif at 1.25 times the size: wider than the form's font measures them.
+    int navWidth(int measured)
+    {
+        return measured * 13 / 10 + kNavPadding;
+    }
+
+    // uxtheme's SetWindowTheme: "DarkMode_Explorer" gives an open list's scroll bar and the tooltips the dark look
+    // (Windows 10 1809 and later; elsewhere they keep the light one).
+    void setTheme(HWND window, const wchar_t* name)
+    {
+        using SetWindowThemeFn = HRESULT(WINAPI*)(HWND, LPCWSTR, LPCWSTR);
+        static const auto set = reinterpret_cast<SetWindowThemeFn>(GetProcAddress(LoadLibraryW(L"uxtheme.dll"), "SetWindowTheme"));
+        if (set && window)
+        {
+            set(window, name, nullptr);
+        }
+    }
+
+    // The title bar in the window's colours (dark from Windows 10 20H1, the colours themselves from Windows 11).
+    void darkTitleBar(HWND window)
+    {
+        using SetAttributeFn = HRESULT(WINAPI*)(HWND, DWORD, LPCVOID, DWORD);
+        const HMODULE dwm = LoadLibraryW(L"dwmapi.dll");
+        const auto set = dwm ? reinterpret_cast<SetAttributeFn>(GetProcAddress(dwm, "DwmSetWindowAttribute")) : nullptr;
+        if (!set)
+        {
+            return;
+        }
+        constexpr DWORD kDarkMode = 20, kCaptionColor = 35, kTextColor = 36;
+        const BOOL dark = TRUE;
+        const COLORREF caption = kBackground, text = kGold;
+        set(window, kDarkMode, &dark, sizeof(dark));
+        set(window, kCaptionColor, &caption, sizeof(caption));
+        set(window, kTextColor, &text, sizeof(text));
+    }
+
+    // `base` in another face, `percent` of its size.
+    HFONT scaledFont(HFONT base, const wchar_t* face, int percent, int weight)
+    {
+        LOGFONTW font = {};
+        GetObjectW(base, sizeof(font), &font);
+        font.lfHeight = MulDiv(font.lfHeight, percent, 100);
+        font.lfWidth = 0;
+        font.lfWeight = weight;
+        font.lfQuality = CLEARTYPE_QUALITY;
+        wcscpy_s(font.lfFaceName, face);
+        return CreateFontIndirectW(&font);
+    }
+
+    void fill(HDC dc, const RECT& r, COLORREF color)
+    {
+        SetBkColor(dc, color);
+        ExtTextOutW(dc, 0, 0, ETO_OPAQUE, &r, nullptr, 0, nullptr);
+    }
+
+    void frame(HDC dc, const RECT& r, COLORREF color, int width = 1)
+    {
+        fill(dc, {r.left, r.top, r.right, r.top + width}, color);
+        fill(dc, {r.left, r.bottom - width, r.right, r.bottom}, color);
+        fill(dc, {r.left, r.top, r.left + width, r.bottom}, color);
+        fill(dc, {r.right - width, r.top, r.right, r.bottom}, color);
+    }
+
+    bool focused(HWND control)
+    {
+        return GetFocus() == control || (SendMessageW(control, CB_GETDROPPEDSTATE, 0, 0) != 0);
+    }
+
+    // A combo box's closed field, drawn here entirely: the inputs' colour, a bronze border (gold while it has the focus
+    // or is open), the chosen text and a gold chevron. Its list is owner-drawn (Form::dialogProc).
+    LRESULT CALLBACK comboProc(HWND combo, UINT msg, WPARAM wp, LPARAM lp, UINT_PTR, DWORD_PTR)
+    {
+        switch (msg)
+        {
+        case WM_ERASEBKGND:
+            return 1;
+        case WM_PAINT:
+        {
+            PAINTSTRUCT ps;
+            const HDC dc = BeginPaint(combo, &ps);
+            RECT r;
+            GetClientRect(combo, &r);
+            const bool enabled = IsWindowEnabled(combo);
+            fill(dc, r, enabled ? kInput : kBackground);
+            frame(dc, r, enabled && focused(combo) ? kGold : kLine);
+            std::wstring text;
+            const LRESULT index = SendMessageW(combo, CB_GETCURSEL, 0, 0);
+            if (index >= 0)
+            {
+                text.resize(std::max<LRESULT>(SendMessageW(combo, CB_GETLBTEXTLEN, index, 0), 0));
+                SendMessageW(combo, CB_GETLBTEXT, index, reinterpret_cast<LPARAM>(text.data()));
+                text.resize(wcslen(text.c_str()));
+            }
+            const int height = r.bottom - r.top;
+            const HGDIOBJ oldFont = SelectObject(dc, reinterpret_cast<HFONT>(SendMessageW(combo, WM_GETFONT, 0, 0)));
+            SetBkMode(dc, TRANSPARENT);
+            SetTextColor(dc, enabled ? kText : kTextDim);
+            RECT t = {r.left + height / 4, r.top, r.right - height, r.bottom};
+            DrawTextW(dc, text.c_str(), -1, &t, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
+            SelectObject(dc, oldFont);
+            // A small gold triangle pointing down, one pixel row per step.
+            const int cx = r.right - height / 2, top = (r.top + r.bottom) / 2 - height / 10, half = std::max(height / 6, 3);
+            for (int row = 0; row < half; ++row)
+            {
+                fill(dc, {cx - half + row, top + row, cx + half - row, top + row + 1}, enabled ? kGold : kLine);
+            }
+            EndPaint(combo, &ps);
+            return 0;
+        }
+        case WM_SETFOCUS:
+        case WM_KILLFOCUS:
+        case WM_ENABLE:
+        {
+            const LRESULT result = DefSubclassProc(combo, msg, wp, lp);
+            InvalidateRect(combo, nullptr, FALSE);
+            return result;
+        }
+        case WM_NCDESTROY:
+            RemoveWindowSubclass(combo, comboProc, 0);
+            break;
+        }
+        return DefSubclassProc(combo, msg, wp, lp);
+    }
+
+    // A one-pixel border in bronze, gold while the control has the focus: edit boxes; `always` (the reference data):
+    // gold, an open combo box's list.
+    LRESULT CALLBACK borderProc(HWND edit, UINT msg, WPARAM wp, LPARAM lp, UINT_PTR, DWORD_PTR always)
+    {
+        switch (msg)
+        {
+        case WM_NCPAINT:
+        {
+            const HDC dc = GetWindowDC(edit);
+            RECT r;
+            GetWindowRect(edit, &r);
+            OffsetRect(&r, -r.left, -r.top);
+            frame(dc, r, always || (IsWindowEnabled(edit) && GetFocus() == edit) ? kGold : kLine);
+            ReleaseDC(edit, dc);
+            return 0;
+        }
+        case WM_SETFOCUS:
+        case WM_KILLFOCUS:
+        case WM_ENABLE:
+        {
+            const LRESULT result = DefSubclassProc(edit, msg, wp, lp);
+            RedrawWindow(edit, nullptr, nullptr, RDW_FRAME | RDW_INVALIDATE);
+            return result;
+        }
+        case WM_NCDESTROY:
+            RemoveWindowSubclass(edit, borderProc, 0);
+            break;
+        }
+        return DefSubclassProc(edit, msg, wp, lp);
     }
 
     // Common Controls 6 (themed controls, tooltips) while the form runs, from the manifest in form.rc: the game exe
@@ -450,6 +617,12 @@ void Ui::Form::icons(HICON big, HICON small)
     m_icons[1] = small;
 }
 
+void Ui::Form::banner(int height, std::function<void(HDC dc, const RECT& rect)> paint)
+{
+    m_bannerHeight = height;
+    m_bannerPaint = std::move(paint);
+}
+
 void Ui::Form::layout()
 {
     using Type = Control::Type;
@@ -642,9 +815,15 @@ void Ui::Form::layout()
         return width;
     };
 
-    // Widths: every page gets the widest page's width, its columns share the difference.
+    // Widths: every page gets the widest page's width, its columns share the difference; the footer and the row of
+    // page buttons fit in it.
     const int footerWidth = (m_footer.rows.empty() ? 0 : blockWidth(m_footer) + kGap) + 2 * kButtonWidth + kGap;
-    int pageWidth = footerWidth - kTabChromeX;
+    int navTotal = 0;
+    for (const Page& page : m_pages)
+    {
+        navTotal += navWidth(metrics.width(page.title));
+    }
+    int pageWidth = std::max(footerWidth, navTotal);
     std::vector<std::vector<int>> widths;
     for (const Page& page : m_pages)
     {
@@ -688,17 +867,19 @@ void Ui::Form::layout()
     }
     m_page = {pageWidth, pageHeight};
 
-    // The footer below the tabs, its controls centered on the buttons' height.
-    const int tabWidth = m_page.cx + kTabChromeX;
-    m_footerY = kMargin + m_page.cy + kTabChromeY + kMargin;
-    const int width = tabWidth - 2 * (kButtonWidth + kGap);
+    // Top down: the banner, the page buttons over a line, the page, a line and the footer, its controls centered on
+    // the buttons' height.
+    m_navY = m_bannerHeight + kMargin / 2;
+    m_pagesY = m_navY + kNavHeight + kMargin;
+    m_footerY = m_pagesY + m_page.cy + kMargin + kMargin / 2;
+    const int width = m_page.cx - 2 * (kButtonWidth + kGap);
     int footerHeight = placeBlock(m_footer, kMargin, width, m_footerY) - m_footerY;
     if (footerHeight < kButtonHeight)
     {
         placeBlock(m_footer, kMargin, width, m_footerY + (kButtonHeight - footerHeight) / 2);
         footerHeight = kButtonHeight;
     }
-    m_window = {tabWidth + 2 * kMargin, m_footerY + footerHeight + kMargin};
+    m_window = {m_page.cx + 2 * kMargin, m_footerY + footerHeight + kMargin};
 }
 
 void Ui::Form::addControl(DialogTemplate& dialog, const Control& c) const
@@ -714,7 +895,8 @@ void Ui::Form::addControl(DialogTemplate& dialog, const Control& c) const
         dialog.add(kButton, c.m_id, c.m_x, c.m_y, c.m_cx, c.m_cy, BS_AUTOCHECKBOX | WS_TABSTOP, 0, c.m_text);
         break;
     case Type::Combo:
-        dialog.add(kComboBox, c.m_id, c.m_x, c.m_y, c.m_cx, kComboDropHeight, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP, 0, L"");
+        dialog.add(kComboBox, c.m_id, c.m_x, c.m_y, c.m_cx, kComboDropHeight,
+            CBS_DROPDOWNLIST | CBS_OWNERDRAWFIXED | CBS_HASSTRINGS | WS_VSCROLL | WS_TABSTOP, 0, L"");
         break;
     case Type::Edit:
         dialog.add(kEdit, c.m_id, c.m_x, c.m_y, c.m_cx, c.m_cy,
@@ -734,8 +916,15 @@ Ui::DialogTemplate Ui::Form::mainTemplate(const wchar_t* title) const
 {
     DialogTemplate dialog(DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, WS_EX_APPWINDOW,
         m_window.cx, m_window.cy, title);
-    dialog.add(WC_TABCONTROLW, kTabsId, kMargin, kMargin, m_page.cx + kTabChromeX, m_page.cy + kTabChromeY,
-        WS_TABSTOP | WS_CLIPSIBLINGS, WS_EX_CONTROLPARENT, L"");
+    const Metrics metrics;
+    int x = kMargin;
+    for (size_t i = 0; i < m_pages.size(); ++i)
+    {
+        const int width = navWidth(metrics.width(m_pages[i].title));
+        dialog.add(kButton, kNavId + static_cast<int>(i), x, m_navY, width, kNavHeight, BS_PUSHBUTTON | WS_TABSTOP, 0,
+            m_pages[i].title);
+        x += width;
+    }
     for (const Row& row : m_footer.rows)
     {
         for (const Control* control : row.controls)
@@ -757,10 +946,6 @@ Ui::DialogTemplate Ui::Form::pageTemplate(const Page& page) const
     {
         for (const Block& block : column.blocks)
         {
-            if (!block.title.empty())
-            {
-                dialog.add(kButton, -1, block.x, block.y, block.cx, block.cy, BS_GROUPBOX, 0, block.title);
-            }
             for (const Row& row : block.rows)
             {
                 for (const Control* control : row.controls)
@@ -796,7 +981,17 @@ Ui::Form::Result Ui::Form::run(HMODULE module, const wchar_t* title)
     {
         page.hwnd = nullptr;
     }
-    m_dlg = m_tabs = m_tooltip = nullptr;
+    m_dlg = m_tooltip = nullptr;
+    m_nav.clear();
+    for (HGDIOBJ object : std::initializer_list<HGDIOBJ>{m_headingFont, m_buttonFont, m_background, m_input})
+    {
+        if (object)
+        {
+            DeleteObject(object);
+        }
+    }
+    m_headingFont = m_buttonFont = nullptr;
+    m_background = m_input = nullptr;
     if (result == -1)
     {
         LOG("Ui::Form: DialogBoxIndirectParam failed: {}", GetLastError());
@@ -808,22 +1003,25 @@ Ui::Form::Result Ui::Form::run(HMODULE module, const wchar_t* title)
 void Ui::Form::init(HWND dlg)
 {
     m_dlg = dlg;
-    m_tabs = GetDlgItem(dlg, kTabsId);
-    LoadLibraryW(L"uxtheme.dll");
+    m_background = CreateSolidBrush(kBackground);
+    m_input = CreateSolidBrush(kInput);
+    createFonts();
+    darkTitleBar(dlg);
+    m_nav.clear();
     for (size_t i = 0; i < m_pages.size(); ++i)
     {
-        TCITEMW tab = {TCIF_TEXT};
-        tab.pszText = m_pages[i].title.data();
-        SendMessageW(m_tabs, TCM_INSERTITEMW, i, reinterpret_cast<LPARAM>(&tab));
+        m_nav.push_back(GetDlgItem(dlg, kNavId + static_cast<int>(i)));
     }
-    RECT area;
-    GetClientRect(m_tabs, &area);
-    TabCtrl_AdjustRect(m_tabs, FALSE, &area);
+    // The pages under the page buttons, right after them in the tab order.
+    RECT area = {kMargin, m_pagesY, kMargin + m_page.cx, m_pagesY + m_page.cy};
+    MapDialogRect(dlg, &area);
+    HWND after = m_nav.empty() ? HWND_TOP : m_nav.back();
     for (Page& page : m_pages)
     {
         DialogTemplate dialog = pageTemplate(page);
-        page.hwnd = CreateDialogIndirectParamW(m_module, dialog.get(), m_tabs, dialogProc, reinterpret_cast<LPARAM>(this));
-        SetWindowPos(page.hwnd, HWND_TOP, area.left, area.top, area.right - area.left, area.bottom - area.top, 0);
+        page.hwnd = CreateDialogIndirectParamW(m_module, dialog.get(), dlg, dialogProc, reinterpret_cast<LPARAM>(this));
+        SetWindowPos(page.hwnd, after, area.left, area.top, area.right - area.left, area.bottom - area.top, 0);
+        after = page.hwnd;
     }
     showPage(0);
 
@@ -832,6 +1030,23 @@ void Ui::Form::init(HWND dlg)
         const HWND parent = c.m_page < 0 ? dlg : m_pages[c.m_page].hwnd;
         c.m_hwnd = GetDlgItem(parent, c.m_id);
         c.m_label = c.m_labelCx ? GetDlgItem(parent, c.m_id + 1) : nullptr;
+        if (c.m_type == Control::Type::Combo)
+        {
+            SetWindowSubclass(c.m_hwnd, comboProc, 0, 0);
+            COMBOBOXINFO info = {sizeof(info)};
+            if (GetComboBoxInfo(c.m_hwnd, &info))
+            {
+                setTheme(info.hwndList, L"DarkMode_Explorer");     // its scroll bar
+                SetWindowSubclass(info.hwndList, borderProc, 0, 1);
+            }
+        }
+        else if (c.m_type == Control::Type::Edit)
+        {
+            SetWindowSubclass(c.m_hwnd, borderProc, 0, 0);
+            const int margin = LOWORD(GetDialogBaseUnits()) / 2;
+            SendMessageW(c.m_hwnd, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN, MAKELPARAM(margin, margin));
+            SetWindowPos(c.m_hwnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+        }
         for (size_t i = 0; i < c.m_choices.size(); ++i)
         {
             SendMessageW(c.m_hwnd, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(c.m_choices[i].text.c_str()));
@@ -854,12 +1069,213 @@ void Ui::Form::init(HWND dlg)
     SetTimer(dlg, kGamepadTimer, kGamepadMs, nullptr);
 }
 
+// The section titles and the page buttons' font from the form's own (which the dialog manager sized for the DPI).
+void Ui::Form::createFonts()
+{
+    for (HFONT* font : {&m_headingFont, &m_buttonFont})
+    {
+        if (*font)
+        {
+            DeleteObject(*font);
+        }
+    }
+    const auto base = reinterpret_cast<HFONT>(SendMessageW(m_dlg, WM_GETFONT, 0, 0));
+    m_headingFont = scaledFont(base, kSerif, 125, FW_SEMIBOLD);
+    m_buttonFont = scaledFont(base, kSerif, 115, FW_SEMIBOLD);
+}
+
 void Ui::Form::showPage(int index)
 {
+    m_shown = index;
     for (int i = 0; i < static_cast<int>(m_pages.size()); ++i)
     {
         ShowWindow(m_pages[i].hwnd, i == index ? SW_SHOW : SW_HIDE);
     }
+    for (HWND button : m_nav)
+    {
+        InvalidateRect(button, nullptr, FALSE);
+    }
+}
+
+int Ui::Form::navIndex(HWND control) const
+{
+    const auto at = std::ranges::find(m_nav, control);
+    return control && at != m_nav.end() ? static_cast<int>(at - m_nav.begin()) : -1;
+}
+
+// The window: the banner, the line under the page buttons and the one over the footer. A page: its section titles,
+// each followed by a line to the section's right edge.
+void Ui::Form::paint(HWND window, HDC dc) const
+{
+    RECT client;
+    GetClientRect(window, &client);
+    fill(dc, client, kBackground);
+    if (window == m_dlg)
+    {
+        RECT banner = {0, 0, 0, m_bannerHeight};
+        MapDialogRect(window, &banner);
+        banner.right = client.right;
+        if (m_bannerPaint && banner.bottom > 0)
+        {
+            m_bannerPaint(dc, banner);
+        }
+        RECT lines = {kMargin, m_navY + kNavHeight, 0, m_footerY - kMargin};
+        MapDialogRect(window, &lines);
+        fill(dc, {lines.left, lines.top, client.right - lines.left, lines.top + 1}, kLine);
+        fill(dc, {lines.left, lines.bottom, client.right - lines.left, lines.bottom + 1}, kLine);
+        return;
+    }
+    const auto page = std::ranges::find(m_pages, window, &Page::hwnd);
+    if (page == m_pages.end())
+    {
+        return;
+    }
+    const HGDIOBJ oldFont = SelectObject(dc, m_headingFont);
+    SetBkMode(dc, TRANSPARENT);
+    SetTextColor(dc, kGold);
+    for (const Column& column : page->columns)
+    {
+        for (const Block& block : column.blocks)
+        {
+            if (block.title.empty())
+            {
+                continue;
+            }
+            RECT r = {block.x, block.y, block.x + block.cx, block.y + kBoxTop - 4};
+            MapDialogRect(window, &r);
+            RECT text = r;
+            DrawTextW(dc, block.title.c_str(), -1, &text, DT_CALCRECT | DT_SINGLELINE | DT_NOPREFIX);
+            DrawTextW(dc, block.title.c_str(), -1, &r, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+            const int y = (r.top + r.bottom) / 2 + 1;
+            const int gap = (text.bottom - text.top) / 2;
+            if (text.right + gap < r.right)
+            {
+                fill(dc, {text.right + gap, y, r.right, y + 1}, kLine);
+            }
+        }
+    }
+    SelectObject(dc, oldFont);
+}
+
+// Labels and paragraphs in parchment (the paragraphs dimmer), edit boxes and open lists on the inputs' colour.
+HBRUSH Ui::Form::colors(UINT msg, HDC dc, HWND control) const
+{
+    switch (msg)
+    {
+    case WM_CTLCOLORSTATIC:
+    {
+        const auto at = std::ranges::find_if(m_controls, [&](const Control& c) { return c.m_hwnd == control || c.m_label == control; });
+        const bool dim = at != m_controls.end() && (at->m_dim || (at->m_type == Control::Type::Text && at->m_hwnd == control));
+        SetTextColor(dc, !IsWindowEnabled(control) || dim ? kTextDim : kText);
+        SetBkColor(dc, kBackground);
+        return m_background;
+    }
+    case WM_CTLCOLOREDIT:
+    case WM_CTLCOLORLISTBOX:
+        SetTextColor(dc, kText);
+        SetBkColor(dc, kInput);
+        return m_input;
+    default:
+        SetBkColor(dc, kBackground);
+        return m_background;
+    }
+}
+
+// Buttons and check boxes in the window's colours: the page buttons as titles (the shown one gold, underlined), OK
+// filled bronze with a gold border, the other buttons outlined, check boxes as a dark box with a gold tick.
+LRESULT Ui::Form::customDraw(const NMCUSTOMDRAW& draw) const
+{
+    const HWND button = draw.hdr.hwndFrom;
+    wchar_t cls[16] = {};
+    GetClassNameW(button, cls, static_cast<int>(std::size(cls)));
+    if (draw.dwDrawStage != CDDS_PREPAINT || _wcsicmp(cls, WC_BUTTONW) != 0)
+    {
+        return CDRF_DODEFAULT;
+    }
+    const LONG type = GetWindowLongW(button, GWL_STYLE) & BS_TYPEMASK;
+    const UINT state = draw.uItemState;
+    const bool disabled = state & CDIS_DISABLED, hot = state & CDIS_HOT, pressed = state & CDIS_SELECTED;
+    const bool focus = (state & CDIS_FOCUS) && !(SendMessageW(button, WM_QUERYUISTATE, 0, 0) & UISF_HIDEFOCUS);
+    const HDC dc = draw.hdc;
+    const RECT r = draw.rc;
+    std::wstring text(GetWindowTextLengthW(button), L'\0');
+    GetWindowTextW(button, text.data(), static_cast<int>(text.size() + 1));
+    SetBkMode(dc, TRANSPARENT);
+    fill(dc, r, kBackground);
+    const int nav = navIndex(button);
+    if (nav >= 0)
+    {
+        const bool shown = nav == m_shown;
+        const HGDIOBJ old = SelectObject(dc, m_headingFont);
+        SetTextColor(dc, shown ? kGoldBright : hot ? kText : kTextDim);
+        RECT t = r;
+        DrawTextW(dc, text.c_str(), -1, &t, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+        if (shown || focus)
+        {
+            RECT measure = r;
+            DrawTextW(dc, text.c_str(), -1, &measure, DT_CALCRECT | DT_SINGLELINE | DT_NOPREFIX);
+            const int width = measure.right - measure.left, left = (r.left + r.right - width) / 2;
+            fill(dc, {left, r.bottom - 2, left + width, r.bottom}, shown ? kGold : kLine);
+        }
+        SelectObject(dc, old);
+        return CDRF_SKIPDEFAULT;
+    }
+    if (type == BS_AUTOCHECKBOX || type == BS_CHECKBOX)
+    {
+        const bool checked = SendMessageW(button, BM_GETCHECK, 0, 0) == BST_CHECKED;
+        const int height = r.bottom - r.top;
+        const int size = std::max(height * 3 / 4, 9);
+        const RECT box = {r.left + 1, r.top + (height - size) / 2, r.left + 1 + size, r.top + (height - size) / 2 + size};
+        fill(dc, box, kInput);
+        frame(dc, box, disabled ? kLine : hot || focus ? kGold : kBoxEdge);
+        if (checked)
+        {
+            // A tick, about a sixth of the box thick.
+            const int w = std::max(size / 6, 2);
+            HPEN pen = CreatePen(PS_SOLID, w, disabled ? kTextDim : kGoldBright);
+            const HGDIOBJ oldPen = SelectObject(dc, pen);
+            const POINT tick[3] = {{box.left + size * 22 / 100, box.top + size * 52 / 100},
+                {box.left + size * 42 / 100, box.top + size * 72 / 100}, {box.left + size * 78 / 100, box.top + size * 30 / 100}};
+            Polyline(dc, tick, 3);
+            SelectObject(dc, oldPen);
+            DeleteObject(pen);
+        }
+        const HGDIOBJ old = SelectObject(dc, reinterpret_cast<HFONT>(SendMessageW(button, WM_GETFONT, 0, 0)));
+        SetTextColor(dc, disabled ? kTextDim : kText);
+        RECT t = {box.right + size / 2, r.top, r.right, r.bottom};
+        DrawTextW(dc, text.c_str(), -1, &t, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+        if (focus)
+        {
+            RECT measure = t;
+            DrawTextW(dc, text.c_str(), -1, &measure, DT_CALCRECT | DT_SINGLELINE | DT_NOPREFIX);
+            const int y = (t.top + t.bottom + measure.bottom - measure.top) / 2;
+            fill(dc, {t.left, y, measure.right, y + 1}, kGold);
+        }
+        SelectObject(dc, old);
+        return CDRF_SKIPDEFAULT;
+    }
+    if (type == BS_PUSHBUTTON || type == BS_DEFPUSHBUTTON)
+    {
+        const bool primary = GetDlgCtrlID(button) == IDOK;
+        if (primary)
+        {
+            fill(dc, r, disabled ? kBackground : pressed ? kButtonFill : hot ? kButtonFillHot : kButtonFill);
+        }
+        frame(dc, r, disabled ? kLine : primary || hot || focus ? kGold : kLine);
+        if (focus)
+        {
+            frame(dc, {r.left + 2, r.top + 2, r.right - 2, r.bottom - 2}, kLine);
+        }
+        const bool footer = GetParent(button) == m_dlg;
+        const HGDIOBJ old = SelectObject(dc, footer ? m_buttonFont : reinterpret_cast<HFONT>(SendMessageW(button, WM_GETFONT, 0, 0)));
+        SetTextColor(dc, disabled ? kTextDim : primary ? kGoldBright : kText);
+        RECT t = r;
+        OffsetRect(&t, 0, pressed ? 1 : 0);
+        DrawTextW(dc, text.c_str(), -1, &t, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+        SelectObject(dc, old);
+        return CDRF_SKIPDEFAULT;
+    }
+    return CDRF_DODEFAULT;
 }
 
 void Ui::Form::addTooltips()
@@ -872,6 +1288,7 @@ void Ui::Form::addTooltips()
     {
         return;
     }
+    setTheme(m_tooltip, L"DarkMode_Explorer");
     // Wrap at the width of 220 dialog units (follows the dialog's DPI scaling), stay up while the mouse rests.
     RECT wrap = {0, 0, 220, 0};
     MapDialogRect(m_dlg, &wrap);
@@ -904,16 +1321,33 @@ void Ui::Form::updateEnabled()
             continue;
         }
         const bool enabled = std::ranges::all_of(c.m_enabled, [&](const Predicate& p) { return p(*this); });
-        EnableWindow(c.m_hwnd, enabled);
-        if (c.m_label)
+        // Labels and paragraphs stay enabled and are drawn dim: Windows embosses disabled static text.
+        const bool text = c.m_type == Control::Type::Label || c.m_type == Control::Type::Text;
+        if (!text)
         {
-            EnableWindow(c.m_label, enabled);
+            EnableWindow(c.m_hwnd, enabled);
+        }
+        if (c.m_dim != !enabled)
+        {
+            c.m_dim = !enabled;
+            for (HWND hwnd : {text ? c.m_hwnd : nullptr, c.m_label})
+            {
+                if (hwnd)
+                {
+                    InvalidateRect(hwnd, nullptr, TRUE);
+                }
+            }
         }
     }
 }
 
 void Ui::Form::command(WORD id)
 {
+    if (id >= kNavId && id < kNavId + static_cast<int>(m_pages.size()))
+    {
+        showPage(id - kNavId);
+        return;
+    }
     const int index = (id - kFirstId) / 2;
     if (id >= kFirstId && (id - kFirstId) % 2 == 0 && index < static_cast<int>(m_controls.size()))
     {
@@ -1027,9 +1461,9 @@ void Ui::Form::gamepad()
         {
             key(right ? VK_DOWN : VK_UP);
         }
-        else if (focus == m_tabs)
+        else if (navIndex(focus) >= 0)
         {
-            key(right ? VK_RIGHT : VK_LEFT);
+            padPage(right ? 1 : -1);
         }
         else
         {
@@ -1041,10 +1475,6 @@ void Ui::Form::gamepad()
         if (combo)
         {
             SendMessageW(focus, CB_SHOWDROPDOWN, TRUE, 0);
-        }
-        else if (focus == m_tabs)
-        {
-            SendMessageW(m_dlg, WM_NEXTDLGCTL, 0, FALSE);
         }
         else if (_wcsicmp(cls, WC_BUTTONW) == 0)
         {
@@ -1146,23 +1576,26 @@ void Ui::Form::padSideways(HWND focus, bool right)
     }
 }
 
-// The previous or next tab; the focus follows if it was on the page.
+// The previous or next page; the focus follows if it was on the page or on its button.
 void Ui::Form::padPage(int step)
 {
-    const int from = TabCtrl_GetCurSel(m_tabs);
+    const int from = m_shown;
     const int to = std::clamp(from + step, 0, static_cast<int>(m_pages.size()) - 1);
-    if (from < 0 || to == from)
+    if (to == from)
     {
         return;
     }
     const HWND focus = GetFocus();
     const bool onPage = focus && IsChild(m_pages[from].hwnd, focus);
-    TabCtrl_SetCurSel(m_tabs, to);
     showPage(to);
     if (onPage)
     {
         const HWND first = GetNextDlgTabItem(m_pages[to].hwnd, nullptr, FALSE);
-        focusOn(first ? first : m_tabs);
+        focusOn(first ? first : m_nav[to]);
+    }
+    else if (navIndex(focus) >= 0)
+    {
+        focusOn(m_nav[to]);
     }
 }
 
@@ -1340,6 +1773,24 @@ INT_PTR CALLBACK Ui::Form::dialogProc(HWND dlg, UINT msg, WPARAM wp, LPARAM lp)
     {
         SetWindowLongPtrW(dlg, DWLP_USER, lp);
     }
+    if (msg == WM_MEASUREITEM)
+    {
+        // Sent while the page's controls are made, before WM_INITDIALOG: the list's lines a little taller than the
+        // text; the closed field as high as an input row.
+        auto* item = reinterpret_cast<MEASUREITEMSTRUCT*>(lp);
+        RECT row = {0, 0, 0, kInputHeight};
+        MapDialogRect(dlg, &row);
+        const HDC dc = GetDC(dlg);
+        const HGDIOBJ old = SelectObject(dc, reinterpret_cast<HFONT>(SendMessageW(dlg, WM_GETFONT, 0, 0)));
+        TEXTMETRICW metrics = {};
+        GetTextMetricsW(dc, &metrics);
+        SelectObject(dc, old);
+        ReleaseDC(dlg, dc);
+        item->itemHeight = item->itemID == static_cast<UINT>(-1) ? std::max<int>(row.bottom - 6, metrics.tmHeight)
+                                                                 : metrics.tmHeight + metrics.tmHeight / 3;
+        SetWindowLongPtrW(dlg, DWLP_MSGRESULT, TRUE);
+        return TRUE;
+    }
     auto* form = reinterpret_cast<Form*>(GetWindowLongPtrW(dlg, DWLP_USER));
     if (!form)
     {
@@ -1352,21 +1803,45 @@ INT_PTR CALLBACK Ui::Form::dialogProc(HWND dlg, UINT msg, WPARAM wp, LPARAM lp)
     case WM_INITDIALOG:
         if (page)
         {
-            // The tab control's themed background behind the page.
-            using EnableThemeDialogTextureFn = HRESULT(WINAPI*)(HWND, DWORD);
-            if (auto enable = reinterpret_cast<EnableThemeDialogTextureFn>(
-                    GetProcAddress(GetModuleHandleW(L"uxtheme.dll"), "EnableThemeDialogTexture")))
-            {
-                enable(dlg, ETDT_ENABLETAB);
-            }
             return FALSE;
         }
         form->init(dlg);
         return TRUE;
     case WM_NOTIFY:
-        if (const auto* header = reinterpret_cast<const NMHDR*>(lp); header->idFrom == kTabsId && header->code == TCN_SELCHANGE)
+        if (const auto* header = reinterpret_cast<const NMHDR*>(lp); header->code == NM_CUSTOMDRAW)
         {
-            form->showPage(TabCtrl_GetCurSel(form->m_tabs));
+            SetWindowLongPtrW(dlg, DWLP_MSGRESULT, form->customDraw(*reinterpret_cast<const NMCUSTOMDRAW*>(lp)));
+            return TRUE;
+        }
+        break;
+    case WM_ERASEBKGND:
+        return TRUE;    // WM_PAINT fills it
+    case WM_PAINT:
+    {
+        PAINTSTRUCT ps;
+        const HDC dc = BeginPaint(dlg, &ps);
+        form->paint(dlg, dc);
+        EndPaint(dlg, &ps);
+        return TRUE;
+    }
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+    case WM_CTLCOLOREDIT:
+    case WM_CTLCOLORLISTBOX:
+    case WM_CTLCOLORBTN:
+        return reinterpret_cast<INT_PTR>(form->colors(msg, reinterpret_cast<HDC>(wp), reinterpret_cast<HWND>(lp)));
+    case WM_DPICHANGED:
+        if (!page)
+        {
+            // The dialog manager scales the window and its font; the serif follows once it has.
+            PostMessageW(dlg, WM_APP, 0, 0);
+        }
+        break;
+    case WM_APP:
+        if (!page)
+        {
+            form->createFonts();
+            RedrawWindow(dlg, nullptr, nullptr, RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN);
             return TRUE;
         }
         break;
@@ -1377,7 +1852,30 @@ INT_PTR CALLBACK Ui::Form::dialogProc(HWND dlg, UINT msg, WPARAM wp, LPARAM lp)
             return TRUE;
         }
         break;
+    case WM_DRAWITEM:
+        if (const auto* item = reinterpret_cast<const DRAWITEMSTRUCT*>(lp); item->CtlType == ODT_COMBOBOX)
+        {
+            // A line of an open list: the chosen one on bronze in gold.
+            const bool chosen = (item->itemState & ODS_SELECTED) && !(item->itemState & ODS_COMBOBOXEDIT);
+            fill(item->hDC, item->rcItem, chosen ? kButtonFill : kInput);
+            if (item->itemID != static_cast<UINT>(-1))
+            {
+                std::wstring text(std::max<LRESULT>(SendMessageW(item->hwndItem, CB_GETLBTEXTLEN, item->itemID, 0), 0), L'\0');
+                SendMessageW(item->hwndItem, CB_GETLBTEXT, item->itemID, reinterpret_cast<LPARAM>(text.data()));
+                SetBkMode(item->hDC, TRANSPARENT);
+                SetTextColor(item->hDC, chosen ? kGoldBright : kText);
+                RECT t = item->rcItem;
+                t.left += (t.bottom - t.top) / 3;
+                DrawTextW(item->hDC, text.c_str(), -1, &t, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
+            }
+            return TRUE;
+        }
+        break;
     case WM_COMMAND:
+        if (HIWORD(wp) == CBN_DROPDOWN || HIWORD(wp) == CBN_CLOSEUP)
+        {
+            InvalidateRect(reinterpret_cast<HWND>(lp), nullptr, FALSE);
+        }
         if (LOWORD(wp) == IDOK || LOWORD(wp) == IDCANCEL)
         {
             form->finish(LOWORD(wp));

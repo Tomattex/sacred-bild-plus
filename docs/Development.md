@@ -21,7 +21,8 @@ What the game's code at those addresses does is in [`RE_NOTES.md`](RE_NOTES.md),
 | `src/system_ddraw.*` | `Backend=chain` on Windows' own ddraw: render targets over 2048 pixels |
 | `src/config.*`, `src/config/` | `SacredBild.ini`: loading it, and the settings in a header per ini section (`Config::render`, `Config::net`, ...) |
 | `src/settings_window.*` | The settings window before the game starts (`[Launcher] HideSettingsWindow`): what it shows, declared control by control |
-| `src/ui/form.*` | `Ui::Form`: settings windows declared in code (pages, groups, rows of controls bound to ini keys), laid out and run as dialogs |
+| `src/ui/form.*` | `Ui::Form`: settings windows declared in code (pages, sections, rows of controls bound to ini keys), laid out and run as dialogs drawn in Sacred's colours |
+| `src/ui/banner.*` | The settings window's banner: the logo from the install's `readme\Gold.jpg`, its white keyed out, on a generated leather texture |
 | `src/log.*`, `src/crash_dump.*` | `SacredBild.log`, minidumps on crashes |
 | `src/patch.*`, `src/sig.*` | Code patches and hooks; byte signature search |
 | `sacred_core` (CMake) | `src/fmt.*`, `log.*`, `patch.*`, `sig.*` as a static library, linked by SacredBild and by Sacred Gear (`gear/`, see [Sacred Gear](Gear.md)) |
