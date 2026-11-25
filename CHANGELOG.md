@@ -8,7 +8,6 @@
   (read from the game's `readme\Gold.jpg`), and its settings are regrouped on five pages: Display, Graphics,
   Interface, Network, Advanced. The HUD layout is on the Interface page; the window is shorter (it fits a 1080p screen
   at 150 % scaling).
-
 - The menus use the same frame limit as the game (`[Display] FpsLimit`). `FpsLimitMenu` is removed; an old ini's
   value is ignored.
 - The menus, the full-screen windows in game (options, save/load, map) and the loading screen are stretched to the
