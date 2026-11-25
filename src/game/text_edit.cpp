@@ -11,6 +11,7 @@
 #include <d3d.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cwctype>
 #include <iterator>
@@ -33,6 +34,7 @@ namespace
     constexpr DWORD kBlinkMs = 300;                 // the game's caret blink
     constexpr uint32_t kSelectionColor = 0x803399FF;
     constexpr size_t kMaxLength = 255;              // past it the field's buffer is always zero (setText's padding)
+    constexpr DWORD kShownMs = 250;                 // a field drawn this recently is on the screen
 
     // The caret and selection of the field that has the keyboard focus. Its events (characters, clicks) run on the
     // thread that hands the UI its events: the window's in the menus, the engine's render thread in game. Its render
@@ -57,6 +59,10 @@ namespace
     // frame only.
     thread_local bool t_hideText = false;
 
+    // The focused field we drew last, and when.
+    std::atomic<const void*> g_drawn{nullptr};
+    std::atomic<DWORD> g_drawnAt{0};
+
     // A text field that takes typing and draws its text from the left: shown, focused, enabled, not read-only, the
     // plain class (not cUI_DigitEdit), no other alignment than the game's own.
     bool editable(const cUI_Control2* control)
@@ -71,22 +77,15 @@ namespace
         return (static_cast<const cUI_EditControl*>(control)->fontFlags & ~0x4000u) == 0;
     }
 
-    // The editable field that has the keyboard focus, in a window that is shown (the game leaves the focus on the field
-    // of a window it closed).
+    // The editable field that has the keyboard focus, if it is on the screen: the game leaves the focus on the field of
+    // a window it closed, and its windows' flags don't tell (the lobby's parent screen is hidden while it shows).
     cUI_EditControl* focusedField()
     {
         cUI_Manager* manager = cUI_Manager::instance();
         cUI_Control2* control = manager ? manager->focus : nullptr;
-        if (!editable(control))
+        if (!control || control != g_drawn.load() || GetTickCount() - g_drawnAt.load() > kShownMs || !editable(control))
         {
             return nullptr;
-        }
-        for (const cUI_Control2* c = control->parent; c; c = c->parent)
-        {
-            if (!c->visible())
-            {
-                return nullptr;
-            }
         }
         return static_cast<cUI_EditControl*>(control);
     }
@@ -337,12 +336,11 @@ namespace
         cEventKey* key = cEventKey::of(event);
         if (key && (key->flags & cEventKey::typed))
         {
-            const bool ours = key->ch >= kKey && key->ch < kKeyEnd;
             if (editable(self))
             {
                 std::scoped_lock lock(g_lock);
                 sync(self);
-                if (ours)
+                if (key->ch >= kKey && key->ch < kKeyEnd)
                 {
                     editKey(self, key->ch);
                     return 1;
@@ -351,10 +349,6 @@ namespace
                 {
                     return 1;
                 }
-            }
-            else if (ours)
-            {
-                return 1;           // the focus moved on since the key: nobody else knows the character
             }
         }
         const uint32_t handled = g_origReceiveEvent(self, edx, event);
@@ -544,6 +538,8 @@ namespace
         {
             return g_origRender(self, edx, device);
         }
+        g_drawn = self;
+        g_drawnAt = GetTickCount();
         t_hideText = true;
         const uint32_t result = g_origRender(self, edx, device);
         t_hideText = false;
