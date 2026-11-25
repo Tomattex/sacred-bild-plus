@@ -3,14 +3,16 @@
 Before the game starts, a settings window offers the settings below with tooltips, on five pages: Display
 (resolution, display mode, frame rate, camera, screenshots), Graphics (renderer, antialiasing, texture filtering, GPU
 work, the DirectDraw files), Interface (UI size, mouse and controller, HUD layout `[UI.Layout]`), Network and Advanced
-(tuning and diagnostics; the controller's buttons are set in game). Its banner is the Sacred Gold logo from the game's
-own `readme\Gold.jpg` (the title in type where the file is missing). Play saves the changed ones to `SacredBild.ini`;
+(tuning and diagnostics; the controller's buttons are set in game). It is drawn like the game's menus, with the game's
+own logo (`readme\Gold.jpg`) and typefaces (`font\CAROLING.TTF`, `font\ANTQS__.TTF`, used for the window only;
+the title in type and Palatino Linotype where they are missing). Play saves the changed ones to `SacredBild.ini`;
 Exit quits. "Don't show this window again" sets `[Launcher] HideSettingsWindow=1`; holding Shift as the game starts
 shows it anyway.
 
 A controller works the window too: the D-pad or left stick moves between the settings (left and right change a list's
-value, or the page while on the page buttons), A ticks a box, presses a button or opens a list, B closes an open list
-without changing it, LB and RB switch pages, Start is Play. Text fields need the keyboard.
+value; right from a page name goes into its page, left from a page's first column back to its name), A ticks a box,
+presses a button, shows a page or opens a list, B closes an open list without changing it, LB and RB switch pages,
+Start is Play. Text fields need the keyboard.
 
 | Section | Key | Default | Meaning |
 |---|---|---|---|
