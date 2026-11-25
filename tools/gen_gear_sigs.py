@@ -207,8 +207,9 @@ GEAR = [
     # (string*, first, last, allocator*), ret 0xC) the engine itself copies NETWORK_LOBBY in with.
     ('g_pLobby', 0x0182EBD0, 'data'),
     ('cString_assign', 0x00415BD0, 'func'),
-    ('cNet_openScreen', 0x007D8560, 'func'),
-    ('cNet_loadSettings', 0x007EDEA0, 'func'),
+    # Both through a call: SacredBild's lobby selector detours them before Sacred Gear loads.
+    ('cNet_openScreen', 0x007D8560, 'call', 0x0070BD1C),
+    ('cNet_loadSettings', 0x007EDEA0, 'call', 0x007D879F),
     ('cNet_saveSettings', 0x007EE780, 'func'),
     ('lobbyPortCall', 0x007CCD28, 'code'),
     # The difficulty level of the running game (0 .. 4): the engine's own code indexes tables with it (ReBorn's appended code too).

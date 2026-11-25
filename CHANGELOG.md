@@ -16,6 +16,7 @@
 - A mod window that is hidden or no longer drawn lets go of the keyboard.
 - The Paste button shows only over a text box that takes typing in an open window.
 - `gear.version` and the log show the DLL's real version instead of 0.1.0.
+- Realms work again next to SacredBild's lobby selector (Gear did not find the network menu's functions).
 
 ## 0.3.0
 
