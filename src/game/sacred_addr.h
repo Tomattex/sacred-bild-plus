@@ -75,6 +75,11 @@ namespace Sacred::Addr
     inline uintptr_t activateAppResumeAnd{};            // ENG 00812D95; and eax, 0xFFFDFFFF (activated)
     inline uintptr_t activateAppPauseOr{};              // ENG 00812DC8; or eax, edi (edi = 0x20000; deactivated)
 
+    // Shows the main window and calls SetForegroundWindow, then SetFocus, until they take or timeoutMs passes; true
+    // once in front, false when minimized. thiscall on the app object (ENG 01830320). WinMain calls it after creating
+    // the window and before its message loop, initApp once more, all three with "forever" (ENG 00A1CCC4 = -1).
+    inline Thiscall<bool(void* self, HWND window, DWORD timeoutMs)> bringToFront{}; // ENG 00811440
+
     // Mouse: getClientCursorPos(hwnd, POINT*) is the only cursor read; cMouse is the singleton the UI and world poll.
     inline Cdecl<void(HWND window, POINT* pt)> getClientCursorPos{}; // ENG 0066E280
     inline Cdecl<cMouse*()> cMouse_instance{};          // ENG 00654F60

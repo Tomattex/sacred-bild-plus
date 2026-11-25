@@ -40,3 +40,6 @@
   character.
 - `[Display] SkipIntro` (on by default; settings window: Display): the Ascaron and publisher logo movies at the
   start are not played. The story movies still are.
+- The game window no longer stays "not responding" for good when it starts behind another window (without the logo
+  movies, whose skipping click brought it to the front, it mostly did): the game waited for the foreground without
+  end and answered nothing meanwhile. It now tries for half a second and goes on; a click brings it to the front.

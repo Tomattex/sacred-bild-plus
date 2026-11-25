@@ -25,6 +25,7 @@ HOOKS = {
     0x006A0EA0: ('playVideo', 5),
     0x006A0D80: ('openMovieStream (cdecl)', 0),
     0x00648660: ('dxDriver7::startCapture', 1),
+    0x00811440: ('bringToFront', 2),
     # text_edit.cpp: hooks, and the call-site redirect target (the replacement takes the font id)
     0x00737AC0: ('cUI_EditControl::receiveEvent', 1),
     0x007382F0: ('cUI_EditControl::render', 1),

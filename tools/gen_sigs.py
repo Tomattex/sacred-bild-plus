@@ -43,6 +43,7 @@ SACRED = [
     ('mainWindowCreateReturn', 0x00813C87, 'code'),
     ('activateAppResumeAnd', 0x00812D95, 'code'),
     ('activateAppPauseOr', 0x00812DC8, 'code'),
+    ('bringToFront', 0x00811440, 'func'),
     # mouse and UI
     ('getClientCursorPos', 0x0066E280, 'func'),
     ('cMouse_instance', 0x00654F60, 'func'),

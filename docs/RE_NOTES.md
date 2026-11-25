@@ -765,6 +765,13 @@ second; SacredBild makes that `[Net] JoinTimeout`, 30 s by default); loading may
 
 ## Input, the world pick and the options window (controller)
 
+- The window thread: `WinMain` (`0x817B30`) creates the main window, calls `bringToFront` (`0x811440`, thiscall on
+  `0x1830320`, `(HWND, timeoutMs)`), runs `initApp` (`0x815F70`: the loading, the logo movies, `bringToFront` again)
+  and calls it a third time before its `GetMessage` loop. `bringToFront` shows the window and loops on
+  `SetForegroundWindow` / `SetFocus` until they take or the time runs out, without reading messages; every call
+  passes "forever" (`0xA1CCC4` = -1). When Windows refuses the foreground, the loop never ends and the window stays
+  "not responding" while the game runs on its other threads. SacredBild caps the wait at 0.5 s
+  (`src/game/focus.cpp`).
 - No DirectInput: keys and buttons come through `sacredWndProc` (`0x812BF0`) and 48 `GetAsyncKeyState` polls (Shift,
   Ctrl, Alt, `VK_LBUTTON` for hold-to-move in `0x6172C0`, the zoom keys in `cEngine_handleZoomInput`). `WM_KEYDOWN`
   calls `GetKeyboardState` and `ToAscii` / `ToUnicode` and posts a key event (vtable `0x897568`) through
