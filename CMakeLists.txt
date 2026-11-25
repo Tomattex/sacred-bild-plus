@@ -129,6 +129,7 @@ set(DDRAW_SOURCES
   src/ddraw9/vertex_buffer.cpp
   src/render/atlas.cpp
   src/render/batcher.cpp
+  src/ui/banner.cpp
   src/ui/form.cpp
   src/ui/form.rc
   src/net/address.cpp
