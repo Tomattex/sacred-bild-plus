@@ -19,6 +19,7 @@
 #include "game/ground_quads.h"
 #include "game/language.h"
 #include "game/layout_check.h"
+#include "game/lobby_select.h"
 #include "game/map_cache.h"
 #include "game/resolution.h"
 #include "game/screenshot.h"
@@ -144,6 +145,7 @@ void Sacred::installHooks()
     Screenshot::install();
     TextEdit::install();
     VersionLabel::install();
+    LobbySelect::install();
     MapCache::install();
     SoundLock::install();
     GroundQuads::install();

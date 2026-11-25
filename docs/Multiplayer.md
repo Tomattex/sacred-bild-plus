@@ -35,6 +35,21 @@ often in the "Public" profile).
 
 The host's relay logs to `SacredBild-server.log`, the LAN list to `SacredBild.log` (lines starting with `LAN`).
 
+## Lobby server (Closed and Open Internet)
+
+Several lobby servers are run by players today. The multiplayer menu (Local Network / Closed Internet / Open
+Internet) shows the one in use under its entries: `<` and `>` switch to the previous and next one, a click on its
+name opens the list, where a click picks one, `x` removes one and the last row adds one (type `host` or `host:port`,
+the port is 7066 if left out; Ctrl+V pastes, Enter or a click adds it, Esc gives up). The choice applies the next
+time Closed or Open Internet is opened; LAN is not touched.
+
+The list is `SacredBild-lobbies.txt` next to `SacredBild.ini` (one server a line, `*` before the one in use). The
+first time it is filled from `Settings.cfg` (`NETWORK_LOBBY`, `NETWORK_LOBBYPORT`) and from a `servers.json` in the
+game folder (another launcher's list). When an Internet screen opens, the chosen server takes the place of
+`NETWORK_LOBBY` / `NETWORK_LOBBYPORT` for it, and the game writes it into `Settings.cfg` itself. A server set in
+`Settings.cfg` from outside (another launcher) is taken over as the choice. With Sacred Gear, a realm chosen there
+(`gear.realm`) wins over this choice.
+
 ## Online games (matchmaker)
 
 Everyone sets `[Net] Matchmaker` to the same server and `Udp=1` (the settings window: Network page). The host creates

@@ -1,6 +1,7 @@
 #include "game/focus.h"
 #include "game/controller.h"
 #include "game/gear_nav.h"
+#include "game/lobby_select.h"
 #include "game/window_fit.h"
 #include "game/zoom.h"
 #include "game/sacred_addr.h"
@@ -215,7 +216,7 @@ namespace
         {
             return 0;   // SacredBild's own screen has the keyboard and mouse
         }
-        if (TextEdit::message(message, wParam))
+        if (LobbySelect::message(message, wParam) || TextEdit::message(message, wParam))
         {
             return 0;
         }

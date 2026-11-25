@@ -182,6 +182,11 @@ SACRED = [
     ('cUI_NetworkInfo_cellRect', 0x006F7130, 'func'),
     ('g_pNetPlayers', 0x0182EBE8, 'data'),
     ('cNetPlayers_count', 0x007DB2C0, 'func'),
+    # lobby server (lobby_select.cpp): as Sacred Gear's realms (gen_gear_sigs.py)
+    ('cNet_openScreen', 0x007D8560, 'func'),
+    ('cNet_loadSettings', 0x007EDEA0, 'func'),
+    ('lobbyPortCall', 0x007CCD28, 'code'),
+    ('cString_assign', 0x00415BD0, 'func'),
     # controller: walking by move orders (hero_move.cpp)
     ('cEngine_sendOrder', 0x00617030, 'func'),
     ('cOrder_vtable', 0x0089095C, 'data'),

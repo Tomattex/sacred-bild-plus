@@ -2,6 +2,7 @@
 #include "game/focus.h"
 #include "game/sacred_addr.h"
 #include "game/ui_canvas.h"
+#include "game/ui_draw.h"
 #include "game/ui_windows.h"
 #include "log.h"
 #include "patch.h"
@@ -46,7 +47,7 @@ namespace
     };
     constexpr uint16_t kIcons[] = {127, 218, 206, 207, 208, 406, 432, 421, 120, 121, 122, 123, 412, 413, 418, 176};
     constexpr int kCell = 20, kPad = 5;
-    constexpr uint32_t kPanelColor = 0xEC140F0A, kBorderColor = 0xFF8C6A3A, kHoverColor = 0x40FFFFFF;
+    constexpr uint32_t kHoverColor = 0x40FFFFFF;
     constexpr uint32_t kDimColor = 0xC8141210, kCountColor = 0xFFB8B0A0, kFullColor = 0xFFE0A040;
 
     // The caret and selection of the field that has the keyboard focus. Its events (characters, clicks) run on the
@@ -469,67 +470,7 @@ namespace
         return t_hideText ? nullptr : g_fontLookup(fonts, edx, id);
     }
 
-    // A translucent rectangle in the UI's layout units, through the device as the UI draws (mapped into the canvas).
-    void fillRect(IDirect3DDevice7* device, float left, float top, float right, float bottom, uint32_t color)
-    {
-        struct Vertex
-        {
-            float x, y, z, rhw;
-            DWORD color;
-        };
-        const Vertex quad[4] = {
-            {left, top, 0.0f, 1.0f, color}, {right, top, 0.0f, 1.0f, color},
-            {left, bottom, 0.0f, 1.0f, color}, {right, bottom, 0.0f, 1.0f, color},
-        };
-        struct RenderState
-        {
-            D3DRENDERSTATETYPE state;
-            DWORD value, saved;
-        };
-        RenderState states[] = {
-            {D3DRENDERSTATE_ALPHABLENDENABLE, TRUE}, {D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA},
-            {D3DRENDERSTATE_DESTBLEND, D3DBLEND_INVSRCALPHA}, {D3DRENDERSTATE_ALPHATESTENABLE, FALSE},
-            {D3DRENDERSTATE_ZENABLE, FALSE},
-        };
-        struct StageState
-        {
-            DWORD stage;
-            D3DTEXTURESTAGESTATETYPE type;
-            DWORD value, saved;
-        };
-        StageState stages[] = {
-            {0, D3DTSS_COLOROP, D3DTOP_SELECTARG1}, {0, D3DTSS_COLORARG1, D3DTA_DIFFUSE},
-            {0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1}, {0, D3DTSS_ALPHAARG1, D3DTA_DIFFUSE},
-            {1, D3DTSS_COLOROP, D3DTOP_DISABLE},
-        };
-        IDirectDrawSurface7* texture = nullptr;
-        device->GetTexture(0, &texture);
-        for (RenderState& s : states)
-        {
-            device->GetRenderState(s.state, &s.saved);
-            device->SetRenderState(s.state, s.value);
-        }
-        for (StageState& s : stages)
-        {
-            device->GetTextureStageState(s.stage, s.type, &s.saved);
-            device->SetTextureStageState(s.stage, s.type, s.value);
-        }
-        device->SetTexture(0, nullptr);
-        device->DrawPrimitive(D3DPT_TRIANGLESTRIP, D3DFVF_XYZRHW | D3DFVF_DIFFUSE, const_cast<Vertex*>(quad), 4, 0);
-        device->SetTexture(0, texture);
-        if (texture)
-        {
-            texture->Release();
-        }
-        for (const StageState& s : stages)
-        {
-            device->SetTextureStageState(s.stage, s.type, s.saved);
-        }
-        for (const RenderState& s : states)
-        {
-            device->SetRenderState(s.state, s.saved);
-        }
-    }
+    using UiDraw::fillRect;
 
     struct Applied;
     Applied apply(const Cell& cell);
@@ -552,8 +493,7 @@ namespace
         const float mx = mouse->x - frame.x, my = mouse->y - frame.y;
         const auto fx = [](int v) { return static_cast<float>(v); };
 
-        fillRect(device, fx(x - 1), fx(y - 1), fx(x + width + 1), fx(y + height + 1), kBorderColor);
-        fillRect(device, fx(x), fx(y), fx(x + width), fx(y + height), kPanelColor);
+        UiDraw::panel(device, fx(x), fx(y), fx(x + width), fx(y + height));
         Palette p;
         p.shown = true;
         p.x = x + frame.x;

@@ -7,6 +7,7 @@
 #include "game/ground_mesh.h"
 #include "game/granny_async.h"
 #include "game/granny_parallel.h"
+#include "game/lobby_select.h"
 #include "game/resolution.h"
 #include "game/sacred_addr.h"
 #include "game/screenshot.h"
@@ -385,6 +386,7 @@ namespace
             g_origUiRender(self, edx, device);
             VersionLabel::draw(self, device);
             TextEdit::drawOverlay(device);
+            LobbySelect::draw(self, device);
         }
         UiWindows::publishDrawn();
         D3DStats::mark(D3DStats::TGameAfterUi);
