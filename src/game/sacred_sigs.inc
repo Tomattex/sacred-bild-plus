@@ -196,6 +196,9 @@ static const Sig::Entry kAddressSigs[] = {
     {"cUI_Savegame_selectRow", "53 55 56 8B F1 57 BD 04 00 00 00 8D BE 94 45 00 00", 0, Sig::Take::Match, &Sacred::Addr::cUI_Savegame_selectRow}, // 0071C360, 0071BBF0, 0071BBF0
     {"textResources_instance", "64 A1 00 00 00 00 6A FF 68 ?? ?? ?? ?? 50 A1 ?? ?? ?? ?? 64 89 25 00 00 00 00 83 EC 0C", 0, Sig::Take::Match, &Sacred::Addr::textResources_instance}, // 006725E0, 006728C0, 006728C0
     {"textResources_get", "8B 44 24 04 56 83 F8 FF 8B F1 74 4A", 0, Sig::Take::Match, &Sacred::Addr::textResources_get}, // 00672C90, 00672F70, 00672F70
+    {"cUI_EditControl_receiveEvent", "6A FF 68 ?? ?? ?? ?? 64 A1 00 00 00 00 50 64 89 25 00 00 00 00 83 EC 1C 53 8B 5C 24 30 55 56 57 8B F1 53 C6 44 24 17 00", 0, Sig::Take::Match, &Sacred::Addr::cUI_EditControl_receiveEvent}, // 00737AC0
+    {"cUI_EditControl_render", "8B 44 24 04 81 EC 38 06 00 00 53 55 56 57 8B F1 50 E8", 0, Sig::Take::Match, &Sacred::Addr::cUI_EditControl_render}, // 007382F0
+    {"editRenderFontCall", "66 8B 86 8A 04 00 00 50 E8 ?? ?? ?? ?? 8B C8 E8 ?? ?? ?? ?? 8B E8 85 ED", 15, Sig::Take::Match, &Sacred::Addr::editRenderFontCall}, // 0073850B
     {"g_pFontManager", "64 89 25 00 00 00 00 51 A1 ?? ?? ?? ?? 85 C0 75 3E 6A 24", 9, Sig::Take::Abs32, &Sacred::Addr::g_pFontManager}, // 00CDCA70, 00CDA9F0, 00CDA9F0
     {"g_hasAddon", "0F 94 44 24 13 EB 04 8B 74 24 14 A0 ?? ?? ?? ??", 12, Sig::Take::Abs32, &Sacred::Addr::g_hasAddon}, // 0182EBEC, 0182CB6C, 0182CB6C
     {"g_gameSettings", "89 5D C8 03 C2 89 45 C4 A0 ?? ?? ?? ?? DF 6D C4", 9, Sig::Take::Abs32, &Sacred::Addr::g_gameSettings}, // 0182EE78, 0182CDF8, 0182CDF8

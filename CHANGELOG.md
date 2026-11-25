@@ -16,3 +16,6 @@
   with the frame limit).
 - A screenshot (Print Screen, Ctrl+B) no longer makes the animations and effects jump: the game switched its clocks
   to its video capture mode for the captured frame.
+- Text fields (savegame and character names, chat, network screens) edit like a normal text box: a movable caret
+  (arrows, Home / End, click, Ctrl for words), selection (Shift, Ctrl+A, mouse drag), Delete, and Ctrl+C / X / V
+  with the Windows clipboard.

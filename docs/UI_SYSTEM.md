@@ -309,6 +309,15 @@ Two notions exist:
 * The game has no generic "focused window". Keyboard hotkeys go through the manager hot-key switch above regardless
   of which window the mouse is over; text typed into the console is routed by the *console visible* test, not by focus.
 
+Typing into an edit control (`cUI_EditControl` in `src/sacred/ui.h` has its layout): the window procedures post
+WM_CHAR as a key event (`cEvent_key`, kind 4, `+6` the character, `+0xA` the modifiers; in the menus handled right
+away on the window thread, in game queued and handled on the render thread). The control takes printable
+characters (appended with `wcscat` while shorter than `+0x484`), Backspace (cuts the last one) and Esc (gives up the
+focus), and leaves other control characters (Enter, Tab, Ctrl+letters) to its window. WM_KEYDOWN reaches it only as
+Up / Down in game (characters 0x100 / 0x101, ignored); arrows, Home, End and Delete never do. Its render draws the
+text from `+0x4A8` with "_" appended every other 0.3 s; with no font (the lookup at `0x73850B`) it draws the frame
+only. SacredBild's `TextEdit` replaces the editing and the text drawing (docs/Display.md).
+
 Reading it reliably: `focus = *(cUI_Control2**)(manager + 0x148)`; treat as text-input only if non-null **and**
 `focus->flags & 0x8000` **and** the object's RTTI is `cUI_EditControl`/`cUI_DigitEdit`/`cUI_Console`'s edit. Sacred
 Bild's own `Overlay::isOpen()` handling in `focus.cpp` is about the OS window focus and is unrelated.

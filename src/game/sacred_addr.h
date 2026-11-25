@@ -30,6 +30,7 @@ namespace Sacred
     struct cTextureManager;
     struct cUI_Book;
     struct cUI_Control2;
+    struct cUI_EditControl;
     struct cUI_Manager;
     struct cUI_NetworkInfo;
     struct cNetPlayers;
@@ -321,6 +322,11 @@ namespace Sacred::Addr
     inline Cdecl<cTextResources*()> textResources_instance{}; // ENG 006725E0
     inline Thiscall<const wchar_t* const*(cTextResources* self, uint32_t id)> textResources_get{}; // ENG 00672C90
     inline Global<cFontManager*> g_pFontManager{};      // ENG 00CDCA70
+    // Text fields (cUI_EditControl): receiveEvent and render (vtable ENG 00897534 slots 4 and 5), and render's call
+    // that looks up the text's font (thiscall on cFontManager (id) -> cFont, ENG 00649CB0; no font: no text drawn).
+    inline Thiscall<uint32_t(cUI_EditControl* self, cEvent* event)> cUI_EditControl_receiveEvent{}; // ENG 00737AC0
+    inline Thiscall<uint32_t(cUI_EditControl* self, IDirect3DDevice7* device)> cUI_EditControl_render{}; // ENG 007382F0
+    inline uintptr_t editRenderFontCall{};              // ENG 0073850B
     // The Underworld add-on is there (the portal message box lists its 14th portal, the island).
     inline Global<uint8_t> g_hasAddon{};                // ENG 0182EBEC
     // The loaded Settings.cfg (loader 0x81C870): byte +2 is FSAA_FILTER, which the sprite passes read to pull their
