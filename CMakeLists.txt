@@ -109,6 +109,7 @@ set(DDRAW_SOURCES
   src/game/resolution.cpp
   src/game/screenshot.cpp
   src/game/text_edit.cpp
+  src/game/version_label.cpp
   src/game/ui_anchor.cpp
   src/game/ui_canvas.cpp
   src/input/bindings.cpp

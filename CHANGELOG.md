@@ -21,3 +21,4 @@
 - Text fields (savegame and character names, chat, network screens) edit like a normal text box: a movable caret
   (arrows, Home / End, click, Ctrl for words), selection (Shift, Ctrl+A, mouse drag), Delete, and Ctrl+C / X / V
   with the Windows clipboard.
+- The menus show "SacredBild+" in gold under the game's version in the bottom right corner.

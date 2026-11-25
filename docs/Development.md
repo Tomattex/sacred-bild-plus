@@ -44,6 +44,7 @@ What the game's code at those addresses does is in [`RE_NOTES.md`](RE_NOTES.md),
 | `src/game/movie.*` | Intro and cutscene movies through Media Foundation |
 | `src/game/screenshot.*` | Print Screen as PNG / JPEG |
 | `src/game/text_edit.*` | The game's text fields: caret, selection, clipboard |
+| `src/game/version_label.*` | "SacredBild+" under the version in the menus |
 | `src/game/language.*` | Text and speech files of the game's language |
 | `src/game/granny_async.*` | Animation update on a worker thread (`[Render] AsyncAnimation`) |
 | `src/game/granny_parallel.*` | `[Render] AnimationThreads`: Granny's animation controls sampled on several threads, split by skeleton |

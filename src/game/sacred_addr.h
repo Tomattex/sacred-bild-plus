@@ -327,6 +327,9 @@ namespace Sacred::Addr
     inline Thiscall<uint32_t(cUI_EditControl* self, cEvent* event)> cUI_EditControl_receiveEvent{}; // ENG 00737AC0
     inline Thiscall<uint32_t(cUI_EditControl* self, IDirect3DDevice7* device)> cUI_EditControl_render{}; // ENG 007382F0
     inline uintptr_t editRenderFontCall{};              // ENG 0073850B
+    // In the menus cUI_Manager::render draws the version ("2.28 ASE", font 7, white) at 969,752: these are
+    // `mov [esp+4Ch], 3C9h` and `mov [esp+50h], 2F0h` setting that position.
+    inline uintptr_t menuVersionPosition{};             // ENG 00759613
     // The Underworld add-on is there (the portal message box lists its 14th portal, the island).
     inline Global<uint8_t> g_hasAddon{};                // ENG 0182EBEC
     // The loaded Settings.cfg (loader 0x81C870): byte +2 is FSAA_FILTER, which the sprite passes read to pull their
