@@ -1,6 +1,7 @@
 #include "game/focus.h"
 #include "game/controller.h"
 #include "game/gear_nav.h"
+#include "game/lobby_select.h"
 #include "game/window_fit.h"
 #include "game/zoom.h"
 #include "game/sacred_addr.h"
@@ -12,6 +13,7 @@
 #include "log.h"
 #include "patch.h"
 
+#include <algorithm>
 #include <atomic>
 #include <mutex>
 
@@ -27,6 +29,7 @@ namespace
     SetCursorPosFn g_origSetCursorPos = nullptr;
     SetWindowsHookExAFn g_origSetWindowsHookExA = nullptr;
     HOOKPROC g_gameKeyboardHook = nullptr;
+    decltype(Sacred::Addr::bringToFront)::Ptr g_origBringToFront = nullptr;
 
     HWND g_window = nullptr;
     std::atomic<WNDPROC> g_origWindowProc{nullptr};
@@ -215,7 +218,7 @@ namespace
         {
             return 0;   // SacredBild's own screen has the keyboard and mouse
         }
-        if (TextEdit::message(message, wParam))
+        if (LobbySelect::message(message, wParam) || TextEdit::message(message, wParam))
         {
             return 0;
         }
@@ -275,6 +278,16 @@ namespace
         OffsetRect(&rect, origin.x, origin.y);
         return !IsRectEmpty(&rect);
     }
+
+    // The game waits for the foreground forever and reads no message meanwhile. When Windows refuses it the
+    // foreground, the wait never ends: the game runs on its other threads, but the window stays "not responding".
+    // The logo movies mostly hid it, as the click that skips them brings the window to the front. Now it tries for a
+    // moment and goes on; a click on the window brings it to the front as for any program.
+    bool __fastcall hookBringToFront(void* self, void* edx, HWND window, DWORD timeoutMs)
+    {
+        constexpr DWORD kMaxWaitMs = 500;
+        return g_origBringToFront(self, edx, window, std::min(timeoutMs, kMaxWaitMs));
+    }
 }
 
 bool Focus::keyDown(int vk)
@@ -300,6 +313,7 @@ void Focus::install()
         g_origGetKeyboardState = &GetKeyboardState;
     }
     LOG("Focus: input only in the foreground, ClipCursor={}", Config::display.clipCursor);
+    Patch::hook(g_origBringToFront, Sacred::Addr::bringToFront, &hookBringToFront, "bringToFront");
 
     // The window procedure no longer pauses rendering when the game loses the foreground: the menu loop's last
     // frame was often cleared without its UI (a black screen), and switching back during an intro movie resumed the

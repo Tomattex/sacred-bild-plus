@@ -28,6 +28,7 @@ namespace Sacred
     struct cTextTable;
     struct cTexture;
     struct cTextureManager;
+    struct cTextureNames;
     struct cUI_Book;
     struct cUI_Control2;
     struct cUI_EditControl;
@@ -73,6 +74,11 @@ namespace Sacred::Addr
     // are its windowed-mode clear and set of the bit (the game's fullscreen mode handles it separately).
     inline uintptr_t activateAppResumeAnd{};            // ENG 00812D95; and eax, 0xFFFDFFFF (activated)
     inline uintptr_t activateAppPauseOr{};              // ENG 00812DC8; or eax, edi (edi = 0x20000; deactivated)
+
+    // Shows the main window and calls SetForegroundWindow, then SetFocus, until they take or timeoutMs passes; true
+    // once in front, false when minimized. thiscall on the app object (ENG 01830320). WinMain calls it after creating
+    // the window and before its message loop, initApp once more, all three with "forever" (ENG 00A1CCC4 = -1).
+    inline Thiscall<bool(void* self, HWND window, DWORD timeoutMs)> bringToFront{}; // ENG 00811440
 
     // Mouse: getClientCursorPos(hwnd, POINT*) is the only cursor read; cMouse is the singleton the UI and world poll.
     inline Cdecl<void(HWND window, POINT* pt)> getClientCursorPos{}; // ENG 0066E280
@@ -344,6 +350,18 @@ namespace Sacred::Addr
     // The players of a network game (sacred/net.h).
     inline Global<cNetPlayers*> g_pNetPlayers{};        // ENG 0182EBE8
     inline Thiscall<uint32_t(cNetPlayers* self)> cNetPlayers_count{}; // ENG 007DB2C0
+    // The lobby server (lobby_select.cpp, as Sacred Gear's realms). The network object (g_pNetPlayers) keeps the lobby
+    // fields: +0x38 an IP override (0 = none), +0x3C the port, +0x39E4 the host (a string: begin, end, capacity). The
+    // network menu runs cNet_openScreen (thiscall (net, flag 1 = an Internet screen)) when a network screen opens: it
+    // reads the options (NETWORK_LOBBY, NETWORK_LOBBYPORT; the options object ENG 0182EE78) into the object with
+    // cNet_loadSettings and then makes the lobby connection, which reads the port from the options again at
+    // lobbyPortCall (`mov ecx, 0182EE78; call 0081E400`). The object writes its fields back into the options at login
+    // and registration (ENG 007EE780). cString_assign: the string's assign (thiscall (string*, first, last,
+    // allocator*)), as the game copies NETWORK_LOBBY in.
+    inline Thiscall<void(void* net, uint32_t flag)> cNet_openScreen{}; // ENG 007D8560
+    inline Thiscall<void(void* net)> cNet_loadSettings{};       // ENG 007EDEA0
+    inline uintptr_t lobbyPortCall{};                   // ENG 007CCD28
+    inline Thiscall<void*(void* string, const char* first, const char* last, void* allocator)> cString_assign{}; // ENG 00415BD0
 
     // Move orders, as the world mouse handler (0x6172C0) and its hold-to-walk (0x60F130) give them: sendOrder is
     // thiscall on the cEngine (cCreature*, cOrder*), callee pops; it snaps a walk target to a walkable cell
@@ -352,4 +370,19 @@ namespace Sacred::Addr
     inline Thiscall<void(cEngine* self, cCreature* creature, cOrder* order)> cEngine_sendOrder{}; // ENG 00617030
     inline uintptr_t cOrder_vtable{};                   // ENG 0089095C
     inline Global<uint8_t> g_worldInputFlags{};         // ENG 00AB73DC
+
+    // The effects bar (effects_bar.cpp). The ability records: combat arts (ids from 1000, 0x78 bytes) and spells (ids
+    // from 1, 0x94 bytes), both {int16 id, uint32 name text at +4, the three UI images of the icon at +0x30..+0x38},
+    // from their lookup functions' loops (first record, end).
+    inline Global<uint8_t> abilityArts{};               // ENG 0094FE28
+    inline Global<uint8_t> abilityArtsEnd{};            // ENG 00952A38
+    inline Global<uint8_t> abilitySpells{};             // ENG 00952ACC
+    inline Global<uint8_t> abilitySpellsEnd{};          // ENG 00955344
+    // The UI images: 0x54-byte records (+0x28 texture handle, +0x2C..+0x38 u0 v0 u1 v1, +0x4C / +0x50 width / height);
+    // this is the first record's texture handle (the table starts 0x28 before it).
+    inline Global<uint32_t> uiImageTextures{};          // ENG 009ECED8
+    // The texture names (made on first use, then kept): find is thiscall (const char* name) -> the texture manager's
+    // handle of the texture of PAK/Texture.pak with that name, 0 if there is none.
+    inline Global<cTextureNames*> g_pTextureNames{};    // ENG 013E7834
+    inline Thiscall<uint32_t(cTextureNames* self, const char* name)> cTextureNames_find{}; // ENG 00657360
 }

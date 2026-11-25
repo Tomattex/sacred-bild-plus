@@ -43,6 +43,7 @@ SACRED = [
     ('mainWindowCreateReturn', 0x00813C87, 'code'),
     ('activateAppResumeAnd', 0x00812D95, 'code'),
     ('activateAppPauseOr', 0x00812DC8, 'code'),
+    ('bringToFront', 0x00811440, 'func'),
     # mouse and UI
     ('getClientCursorPos', 0x0066E280, 'func'),
     ('cMouse_instance', 0x00654F60, 'func'),
@@ -182,10 +183,23 @@ SACRED = [
     ('cUI_NetworkInfo_cellRect', 0x006F7130, 'func'),
     ('g_pNetPlayers', 0x0182EBE8, 'data'),
     ('cNetPlayers_count', 0x007DB2C0, 'func'),
+    # lobby server (lobby_select.cpp): as Sacred Gear's realms (gen_gear_sigs.py)
+    ('cNet_openScreen', 0x007D8560, 'func'),
+    ('cNet_loadSettings', 0x007EDEA0, 'func'),
+    ('lobbyPortCall', 0x007CCD28, 'code'),
+    ('cString_assign', 0x00415BD0, 'func'),
     # controller: walking by move orders (hero_move.cpp)
     ('cEngine_sendOrder', 0x00617030, 'func'),
     ('cOrder_vtable', 0x0089095C, 'data'),
     ('g_worldInputFlags', 0x00AB73DC, 'data'),
+    # effects bar: the ability records, the UI images and the texture names
+    ('abilityArts', 0x0094FE28, 'data'),
+    ('abilityArtsEnd', 0x00952A38, 'data'),
+    ('abilitySpells', 0x00952ACC, 'data'),
+    ('abilitySpellsEnd', 0x00955344, 'data'),
+    ('uiImageTextures', 0x009ECED8, 'data'),
+    ('g_pTextureNames', 0x013E7834, 'data'),
+    ('cTextureNames_find', 0x00657360, 'func'),
 ]
 
 # gameserver.exe (the same addresses in both builds) has no function table here: each entry gives the instruction

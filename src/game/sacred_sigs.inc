@@ -9,6 +9,7 @@ static const Sig::Entry kAddressSigs[] = {
     {"mainWindowCreateReturn", "8B 4C 24 44 5F 5E 89 01 8B C8 85 C9", 0, Sig::Take::Match, &Sacred::Addr::mainWindowCreateReturn}, // 00813C87, 00813337, 00813337
     {"activateAppResumeAnd", "8B 94 24 B8 02 00 00 25 FF FF FD FF", 7, Sig::Take::Match, &Sacred::Addr::activateAppResumeAnd}, // 00812D95, 00812445, 00812445
     {"activateAppPauseOr", "6A 04 6A 0C E8 ?? ?? ?? ?? 8B C8 E8 ?? ?? ?? ?? EB 3D 0B C7", 18, Sig::Take::Match, &Sacred::Addr::activateAppPauseOr}, // 00812DC8, 00812478, 00812478
+    {"bringToFront", "51 53 55 8B 2D ?? ?? ?? ?? 56 FF D5 8B 74 24 14 89 44 24 0C 56 B3 01 FF 15", 0, Sig::Take::Match, &Sacred::Addr::bringToFront}, // 00811440
     {"getClientCursorPos", "83 EC 18 56 8B 74 24 24 57 56 FF 15 ?? ?? ?? ??", 0, Sig::Take::Match, &Sacred::Addr::getClientCursorPos}, // 0066E280, 0066E500, 0066E500
     {"cMouse_instance", "6A FF 68 ?? ?? ?? ?? 64 A1 00 00 00 00 50 64 89 25 00 00 00 00 51 A1 ?? ?? ?? ?? 85 C0 75 3E 6A 70", 0, Sig::Take::Match, &Sacred::Addr::cMouse_instance}, // 00654F60, 006550F0, 006550F0
     {"cMouse_renderCursor", "56 8B F1 57 8D 7E 24 8B CF E8 ?? ?? ?? ?? 8B 4E 64", 0, Sig::Take::Match, &Sacred::Addr::cMouse_renderCursor}, // 00655450, 006555E0, 006555E0
@@ -207,10 +208,21 @@ static const Sig::Entry kAddressSigs[] = {
     {"g_characterSlotLocked", "0F BE C3 8A 88 ?? ?? ?? ?? 84 C9 75 0B 6A 01 8B CE", 5, Sig::Take::Abs32, &Sacred::Addr::g_characterSlotLocked}, // 017EA3D0, 017E8350, 017E8350
     {"cUI_NetworkInfo_cellRect", "83 EC 0C 8D 44 24 00 56 8B F1 50 E8 ?? ?? ?? ?? 8B B6 54 01 00 00", 0, Sig::Take::Match, &Sacred::Addr::cUI_NetworkInfo_cellRect}, // 006F7130, 006F6DF0, 006F6DF0
     {"g_pNetPlayers", "A1 ?? ?? ?? ?? 55 3B C3 56 75 47 68 D0 3A 00 00", 1, Sig::Take::Abs32, &Sacred::Addr::g_pNetPlayers}, // 0182EBE8, 0182CB68, 0182CB68
+    {"cNet_openScreen", "64 A1 00 00 00 00 6A FF 68 ?? ?? ?? ?? 50 64 89 25 00 00 00 00 56 57 8B F1", 0, Sig::Take::Match, &Sacred::Addr::cNet_openScreen}, // 007D8560, 007D7D00
+    {"cNet_loadSettings", "6A FF 68 ?? ?? ?? ?? 64 A1 00 00 00 00 50 64 89 25 00 00 00 00 83 EC 54 53 55 56 57 8B F1", 0, Sig::Take::Match, &Sacred::Addr::cNet_loadSettings}, // 007EDEA0, 007ED430
+    {"lobbyPortCall", "8B 11 FF 52 4C B9 ?? ?? ?? ?? E8 ?? ?? ?? ?? 8B 4E 40 6A 01", 10, Sig::Take::Match, &Sacred::Addr::lobbyPortCall}, // 007CCD28, 007CC548
+    {"cString_assign", "8B 44 24 04 53 55 56 57 8B F9 8B 4C 24 18", 0, Sig::Take::Match, &Sacred::Addr::cString_assign}, // 00415BD0, 00415BE0
     {"cNetPlayers_count", "8B 15 ?? ?? ?? ?? 33 C0 85 D2 53 74 21 8A 5A 2B", 0, Sig::Take::Match, &Sacred::Addr::cNetPlayers_count}, // 007DB2C0, 007DA890, 007DA890
     {"cEngine_sendOrder", "83 EC 28 53 55 8B 6C 24 34 57 8B 7C 24 3C", 0, Sig::Take::Match, &Sacred::Addr::cEngine_sendOrder}, // 00617030, 006170D0, 006170D0
     {"cOrder_vtable", "C7 44 24 18 ?? ?? ?? ?? 89 7C 24 2C 89 7C 24 30", 4, Sig::Take::Abs32, &Sacred::Addr::cOrder_vtable}, // 0089095C, 0088E95C, 0088E95C
     {"g_worldInputFlags", "8B 0D ?? ?? ?? ?? C1 E9 03 80 E1 01 80 C9 06 51", 2, Sig::Take::Abs32, &Sacred::Addr::g_worldInputFlags}, // 00AB73DC, 00AB535C, 00AB535C
+    {"abilityArts", "B8 ?? ?? ?? ?? 66 39 10 74 0E 83 C0 78 41 3D ?? ?? ?? ?? 72 F0", 1, Sig::Take::Abs32, &Sacred::Addr::abilityArts}, // 0094FE28
+    {"abilityArtsEnd", "3D ?? ?? ?? ?? 72 F0 33 C0 C3 8D 04 49 8D 04 80", 1, Sig::Take::Abs32, &Sacred::Addr::abilityArtsEnd}, // 00952A38
+    {"abilitySpells", "B8 ?? ?? ?? ?? 66 39 10 74 10 05 94 00 00 00 41", 1, Sig::Take::Abs32, &Sacred::Addr::abilitySpells}, // 00952ACC
+    {"abilitySpellsEnd", "3D ?? ?? ?? ?? 72 EE 33 C0 C3 8D 04 C9 8D 0C 81", 1, Sig::Take::Abs32, &Sacred::Addr::abilitySpellsEnd}, // 00955344
+    {"uiImageTextures", "8B 04 95 ?? ?? ?? ?? 89 86 4C 02 00 00 B8 00 01 00 00", 3, Sig::Take::Abs32, &Sacred::Addr::uiImageTextures}, // 009ECED8
+    {"g_pTextureNames", "51 A1 ?? ?? ?? ?? 85 C0 75 ?? 68 B4 14 00 00", 2, Sig::Take::Abs32, &Sacred::Addr::g_pTextureNames}, // 013E7834
+    {"cTextureNames_find", "C1 E0 04 03 C2 C2 04 00 33 C0 C2 04 00 90 90 90 8B 44 24 04 56 8D B1 94 00 00 00 50 8B CE E8", 16, Sig::Take::Match, &Sacred::Addr::cTextureNames_find}, // 00657360
 };
 // Entries that builds may lack (counted apart from kAddressSigs).
 static const Sig::Entry kOptionalAddressSigs[] = {

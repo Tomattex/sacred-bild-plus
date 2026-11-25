@@ -4,6 +4,12 @@
 
 ### SacredBild
 
+- The multiplayer menu shows the lobby server for Closed and Open Internet and switches between servers (arrows, or a
+  list to pick, add `host[:port]` and remove); the list is kept in `SacredBild-lobbies.txt`, first filled from
+  `Settings.cfg` and a `servers.json` in the game folder, and the game saves the choice in `Settings.cfg`.
+- In game, a row of icons left of the hero's portrait shows the effects on the hero: combat arts and spells (also a
+  party member's or a monster's) and poison, each with the game's icon and the time it has left; the cursor over an
+  icon shows its name. It moves aside when a window opens there; `[UI] EffectsBar=0` turns it off.
 - The settings window before the game starts looks like the game's menus: dark stone, the page names in a column in
   the game's uncial (the shown one over the portal's red glow), the page in a steel frame, buttons as plaques with
   glowing orbs, under the Sacred Gold logo. Logo and typefaces come from the game's own files (`readme\Gold.jpg`,
@@ -32,3 +38,8 @@
   the font's codes (`\c` colour, `\g` sprite). A colour replaces the name's colour (or the selection's) instead of
   adding codes; the palette shows the length used and dims what no longer fits. Text fields edit these codes as one
   character.
+- `[Display] SkipIntro` (on by default; settings window: Display): the Ascaron and publisher logo movies at the
+  start are not played. The story movies still are.
+- The game window no longer stays "not responding" for good when it starts behind another window (without the logo
+  movies, whose skipping click brought it to the front, it mostly did): the game waited for the foreground without
+  end and answered nothing meanwhile. It now tries for half a second and goes on; a click brings it to the front.

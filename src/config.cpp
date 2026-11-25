@@ -175,6 +175,7 @@ void ConfigFile::load(const std::wstring& gameDir)
     applyAutomationWindow();
     Config::display.resizable = !Config::display.automationWindow && readBool(ini, L"Display", L"Resizable", true);
     Config::display.clipCursor = readInt(ini, L"Display", L"ClipCursor", Config::display.clipCursor) != 0;
+    Config::display.skipIntro = readInt(ini, L"Display", L"SkipIntro", Config::display.skipIntro) != 0;
     Config::display.fpsLimit = readInt(ini, L"Display", L"FpsLimit", Config::display.fpsLimit);
     Config::display.fpsLimitInactive = readInt(ini, L"Display", L"FpsLimitInactive", Config::display.fpsLimitInactive);
     Config::display.vsync = readInt(ini, L"Display", L"VSync", Config::display.vsync) != 0;
@@ -191,6 +192,7 @@ void ConfigFile::load(const std::wstring& gameDir)
     }
     Config::ui.scaleMenus = _wcsicmp(readString(ini, L"UI", L"ScaleMode", L"InGame").c_str(), L"Full") == 0;
     Config::ui.linearFilter = readInt(ini, L"UI", L"LinearFilter", Config::ui.linearFilter) != 0;
+    Config::ui.effectsBar = readInt(ini, L"UI", L"EffectsBar", Config::ui.effectsBar) != 0;
     Config::ui.anchor = readInt(ini, L"UI", L"Anchor", Config::ui.anchor) != 0;
     readPosition(ini, L"Taskbar", Config::ui.taskbar);
     readPosition(ini, L"Chat", Config::ui.chat);
@@ -299,13 +301,13 @@ void ConfigFile::load(const std::wstring& gameDir)
     Config::debug.skinCheck = readInt(ini, L"Debug", L"SkinCheck", Config::debug.skinCheck) != 0;
     Config::debug.animationCheck = readInt(ini, L"Debug", L"AnimationCheck", Config::debug.animationCheck) != 0;
 
-    LOG("Config: HideSettingsWindow={} Backend={} D3D9='{}' MediaFoundation={} Width={} Height={} Mode={} ClipCursor={} FpsLimit={} FpsLimitInactive={} VSync={} MaxFrameLatency={} UI.Scale={} UI.ScaleMode={} UI.LinearFilter={} UI.Anchor={} TextureBudgetMB={} Batch={} "
+    LOG("Config: HideSettingsWindow={} Backend={} D3D9='{}' MediaFoundation={} Width={} Height={} Mode={} ClipCursor={} SkipIntro={} FpsLimit={} FpsLimitInactive={} VSync={} MaxFrameLatency={} UI.Scale={} UI.ScaleMode={} UI.LinearFilter={} UI.Anchor={} UI.EffectsBar={} TextureBudgetMB={} Batch={} "
         "BatchNoClip={} BatchVertexBuffer={} BatchModels={} BatchGround={} BatchSprites={} GroundMesh={} GpuSkinning={} SMAA={} TextureFilter={} OffscreenPoses={} AsyncAnimation={} AnimationThreads={} RecordIndex={} SoundLock={} FastMath={} WarmFileCache={} Atlas={} ({} px, {} pages, textures <= {}) "
         "Screenshot.Format={} Net.Relay={} Net.Port={} Net.Hosts='{}' Net.NoDelay={} Net.JoinTimeout={} Net.Udp={} Net.Matchmaker='{}' Net.Publish={} Net.Prefer={} D3DStats={} Profiler={} ({} us) UiTrace={} CrashDump={} MovieFallback={} SkinCheck={} AnimationCheck={}",
         !Config::launcher.settingsWindow, Config::ddraw.d3d9 ? "d3d9" : "chain", ascii(Config::ddraw.d3d9Path), Config::ddraw.mediaFoundation, Config::display.width, Config::display.height,
-        Config::display.mode == Config::Display::Mode::Fullscreen ? "Fullscreen" : Config::display.mode == Config::Display::Mode::Windowed ? "Windowed" : "Borderless", Config::display.clipCursor, Config::display.fpsLimit, Config::display.fpsLimitInactive,
+        Config::display.mode == Config::Display::Mode::Fullscreen ? "Fullscreen" : Config::display.mode == Config::Display::Mode::Windowed ? "Windowed" : "Borderless", Config::display.clipCursor, Config::display.skipIntro, Config::display.fpsLimit, Config::display.fpsLimitInactive,
         Config::display.vsync, Config::display.maxFrameLatency, Config::ui.scale,
-        Config::ui.scaleMenus ? "Full" : "InGame", Config::ui.linearFilter, Config::ui.anchor,
+        Config::ui.scaleMenus ? "Full" : "InGame", Config::ui.linearFilter, Config::ui.anchor, Config::ui.effectsBar,
         Config::render.textureBudgetMB, Config::render.batch, Config::render.batchNoClip, Config::render.batchVertexBuffer,
         Config::render.batchModels, Config::render.batchGround, Config::render.batchSprites, Config::render.groundMesh, Config::render.gpuSkinning,
         std::array{"off", "low", "medium", "high"}[std::clamp(Config::render.smaa, 0, 3)], std::array{"point", "sharp", "bilinear"}[std::clamp(Config::render.textureFilter, 0, 2)], Config::render.offscreenPoses, Config::render.asyncAnimation, Config::render.animationThreads, Config::render.recordIndex, Config::render.soundLock, Config::render.fastMath, Config::render.warmFileCache, Config::render.atlas, Config::render.atlasPageSize, Config::render.atlasPages,

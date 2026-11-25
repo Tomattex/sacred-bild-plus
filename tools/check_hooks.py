@@ -25,10 +25,15 @@ HOOKS = {
     0x006A0EA0: ('playVideo', 5),
     0x006A0D80: ('openMovieStream (cdecl)', 0),
     0x00648660: ('dxDriver7::startCapture', 1),
+    0x00811440: ('bringToFront', 2),
     # text_edit.cpp: hooks, and the call-site redirect target (the replacement takes the font id)
     0x00737AC0: ('cUI_EditControl::receiveEvent', 1),
     0x007382F0: ('cUI_EditControl::render', 1),
     0x00649CB0: ('cFontManager::get (called)', 1),
+    # lobby_select.cpp: hooks, and the call-site redirect target (the replacement takes no stack arguments)
+    0x007D8560: ('cNet::openScreen', 1),
+    0x007EDEA0: ('cNet::loadSettings', 0),
+    0x0081E400: ('cOptions::lobbyPort (called)', 0),
     0x0060E350: ('cEngine::renderThreadRun (fastcall)', 0),
     0x0060A9F0: ('frameLimiter (cdecl)', 0),
     0x0075EF40: ('menuWater::update', 1),
@@ -110,6 +115,8 @@ HOOKS = {
     0x0060D6C0: ('cEngine::instance (called, cdecl)', 0),
     0x006113E0: ('cEngine::getViewOffset (called)', 2),
     0x006B3640: ('cUI_Book::lineAt (called)', 3),
+    # effects_bar.cpp
+    0x00657360: ('cTextureNames::find (called)', 1),
 }
 
 # The typed functions in src/game/sacred_addr.h (Thiscall<R(Self, Args...)> / Cdecl<R(Args...)>, with "ENG address"

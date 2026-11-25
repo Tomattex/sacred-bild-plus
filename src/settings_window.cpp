@@ -174,6 +174,9 @@ namespace
             .enabledIf([](const Form& f) { return f.value(L"Display", L"Mode") == L"Windowed"; })
             .tip(L"A window with a frame can be resized and maximized. The game keeps its resolution: the picture is "
                  L"stretched to the window, which keeps the picture's proportions.");
+        ui.check(L"Skip the logo movies at the start", {L"Display", L"SkipIntro"}, Config::display.skipIntro)
+            .tip(L"Start without the Ascaron and publisher logo movies. The story movies (the intro of a new game, the "
+                 L"acts) still play.");
         ui.group(L"Frame rate");
         const int refresh = displayRefresh();
         std::vector<int> limits{0, 30, 60, 75, 90, 120, 144, 165, 240};
@@ -297,6 +300,10 @@ namespace
 
         ui.column();
         ui.group(L"HUD layout");
+        ui.check(L"Show the effects on the hero beside the portrait", {L"UI", L"EffectsBar"}, Config::ui.effectsBar)
+            .tip(L"In game, a row of the game's icons left of the hero's portrait: the combat arts and spells working on "
+                 L"the hero (its own, the party's, monsters' curses) and poison, each with the time it has left. The "
+                 L"cursor over an icon shows its name.");
         ui.check(L"Place the HUD windows at the screen edges", {L"UI", L"Anchor"}, Config::ui.anchor)
             .tip(L"In game, place the taskbar, minimap, inventory and the other HUD windows at the screen edges, at the "
                  L"positions below. Off: the whole interface stays in the centered 1024 x 768 area.");
