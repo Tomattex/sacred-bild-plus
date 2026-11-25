@@ -110,6 +110,8 @@ HOOKS = {
     0x0060D6C0: ('cEngine::instance (called, cdecl)', 0),
     0x006113E0: ('cEngine::getViewOffset (called)', 2),
     0x006B3640: ('cUI_Book::lineAt (called)', 3),
+    # effects_bar.cpp
+    0x00657360: ('cTextureNames::find (called)', 1),
 }
 
 # The typed functions in src/game/sacred_addr.h (Thiscall<R(Self, Args...)> / Cdecl<R(Args...)>, with "ENG address"

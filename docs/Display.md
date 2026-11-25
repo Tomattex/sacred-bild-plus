@@ -97,6 +97,24 @@ in the same order as the typing and the controller's on-screen keyboard and Sacr
 caret too. The field's text is drawn by SacredBild while it has the focus (the part that fits, the selection, the
 caret); the rest of the field is the game's.
 
+## Effects bar
+
+In game, a row of icons left of the hero's portrait shows what works on the hero: the combat arts and spells (its
+own, a party member's, a monster's curse) and poison. Each has the game's own icon (an art's or spell's coloured
+icon from the skill slots, the poison sign the game shows over its people) and the time it has left under it (`12s`,
+`1:05`; none for a lasting one); the cursor over an icon shows its name in a box under the row. A ninth effect starts
+a second row. When a window opens where the row is (stats, a merchant, the network game's portraits), the row moves
+to its left or below it, and it is hidden while there is no room or a full-screen window or the escape menu is open.
+It is drawn in the minimap window's frame, so it follows `[UI] Scale` and `[UI.Layout] Minimap`. `[UI] EffectsBar=0`
+(settings window: Interface, Show the effects on the hero beside the portrait) turns it off.
+
+The game keeps a creature's timed effects in a list (stats block +0x11A; 0x20-byte entries: kind, value, seconds
+left, and the art or spell that gave them; its effect function ENG 00582D50 adds them). An art or spell adds one
+entry per value it changes, all with its id and time, so the bar shows one icon per art or spell with the longest
+time; poison (kinds 0x17 and 0x1E, the creature's poisoned flag) has no art behind it and gets the poison sign
+(`SIM_POISON.TGA`) and the game's text "Poison". The list is copied once per frame; the engine's own entries that
+belong to neither (the rest of an art's effects, hit reactions) are left out.
+
 ## Input only in the foreground
 
 The game polls keys and mouse buttons whether or not it has the focus, moves the cursor, and its low-level keyboard

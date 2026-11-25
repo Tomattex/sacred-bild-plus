@@ -29,6 +29,8 @@ namespace Config
         Position portraits{0, 0};
         Position shops{0, 0};       // blacksmith, merchant, combat art master, chest, cube, trade
         bool linearFilter = true;   // bilinear filtering for the scaled UI instead of the game's point sampling
+        // In game, the effects on the hero (arts, spells, poison) as icons with their time left beside the portrait.
+        bool effectsBar = true;
     };
     inline Ui ui;
 }

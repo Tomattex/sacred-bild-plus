@@ -1,6 +1,7 @@
 #include "game/frame_hooks.h"
 #include "game/controller.h"
 #include "game/d3d_stats.h"
+#include "game/effects_bar.h"
 #include "game/device_proxy.h"
 #include "game/focus.h"
 #include "game/gpu_skin.h"
@@ -385,6 +386,7 @@ namespace
             g_origUiRender(self, edx, device);
             VersionLabel::draw(self, device);
             TextEdit::drawOverlay(device);
+            EffectsBar::draw(self, device);
         }
         UiWindows::publishDrawn();
         D3DStats::mark(D3DStats::TGameAfterUi);
