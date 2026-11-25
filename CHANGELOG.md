@@ -6,6 +6,16 @@
 
 - With `[Render] GpuSkinning` the sheen of buffs and spells on characters (stone skin, light shield and the other
   overlays) covers the whole model again, as in the original game, instead of showing in patches.
+- Rain, fog and snow cover the whole screen when the window got its final size after the game started (a resized
+  window, Wine).
+
+### Sacred Gear
+
+- A companion the player controls no longer fights back and flees on its own.
+- Savegame pictures show the world, not a black, old or hero-select frame.
+- A mod window that is hidden or no longer drawn lets go of the keyboard.
+- The Paste button shows only over a text box that takes typing in an open window.
+- `gear.version` and the log show the DLL's real version instead of 0.1.0.
 
 ## 0.3.0
 
