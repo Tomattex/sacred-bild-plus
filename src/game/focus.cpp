@@ -4,6 +4,7 @@
 #include "game/window_fit.h"
 #include "game/zoom.h"
 #include "game/sacred_addr.h"
+#include "game/text_edit.h"
 #include "input/inject.h"
 #include "input/input_mode.h"
 #include "overlay/overlay.h"
@@ -213,6 +214,10 @@ namespace
         if (Overlay::message(window, message, wParam, lParam))
         {
             return 0;   // SacredBild's own screen has the keyboard and mouse
+        }
+        if (TextEdit::translateKey(message, wParam))
+        {
+            return 0;
         }
         return CallWindowProcA(g_origWindowProc.load(), window, message, wParam, lParam);
     }

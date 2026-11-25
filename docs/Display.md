@@ -66,8 +66,26 @@ main window that SacredBild already subclasses.
 
 ## Screenshots
 
-Print Screen saves the whole screen as `Capture\shotNNNN.png` (or `.jpg`, `[Screenshot] Format`), on a worker
-thread; the game's own wrote the top-left 1024x768 as TGA + JPEG, sheared at other widths.
+Print Screen and Ctrl+B save the whole screen as `Capture\shotNNNN.png` (or `.jpg`, `[Screenshot] Format`), on a
+worker thread; the game's own wrote the top-left 1024x768 as TGA + JPEG, sheared at other widths, and switched its
+clocks to its video capture mode for that frame, which made the game time jump.
+
+## Text fields
+
+The game's text fields (savegame and character names, the chat line, the network screens) only appended: a typed
+character went to the end and Backspace took the last one. They now edit like any text box:
+
+- The caret moves with Left / Right, Home / End and a click; Ctrl+Left / Right jump by words.
+- Shift with those keys, Ctrl+A, Shift+click and dragging the mouse select; the selection is highlighted.
+- Delete and Backspace delete the selection or one character (Ctrl: a word); typing replaces the selection.
+- Ctrl+C / Ctrl+X / Ctrl+V copy, cut and paste through the Windows clipboard (line breaks paste as spaces). Password
+  fields don't copy.
+
+The field's own rules stay: its length limit, upper case, no dots or slashes in file names. The keys the game never
+gave a text field (arrows, Home, End, Delete) reach it as characters of the Unicode private use area, so they arrive
+in the same order as the typing and the controller's on-screen keyboard and Sacred Gear's Paste button type at the
+caret too. The field's text is drawn by SacredBild while it has the focus (the part that fits, the selection, the
+caret); the rest of the field is the game's.
 
 ## Input only in the foreground
 

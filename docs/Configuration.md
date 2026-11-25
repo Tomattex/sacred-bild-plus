@@ -57,7 +57,7 @@ tabs, Start is Play. Text fields need the keyboard.
 | Render | AtlasPageSize | 8192 | Atlas page size in texels (clamped to the GPU limit, halved if the GPU refuses it). |
 | Render | AtlasPages | 2 | Pages per texture format; the least recently used one is reused when full. |
 | Render | AtlasMaxTextureSize | 512 | Larger textures are used directly. |
-| Screenshot | Format | png | Print Screen saves `Capture\shotNNNN.png`; `jpg` = JPEG (quality 95) instead. |
+| Screenshot | Format | png | Print Screen and Ctrl+B save `Capture\shotNNNN.png`; `jpg` = JPEG (quality 95) instead. |
 | Net | Relay | 1 | Hosted games: the gameserver announces on every adapter and answers `Hosts` subscriptions. |
 | Net | Port | 2105 | Host side: UDP port of the relay, the UDP game connection and the matchmaker. |
 | Net | Hosts | | Hosts whose games are listed even without broadcasts: IPv4 addresses or names, comma-separated, optional `:port`. |

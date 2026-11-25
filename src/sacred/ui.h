@@ -23,7 +23,32 @@ namespace Sacred
     struct cEvent
     {
         uintptr_t vtable;
+
+        // Its kind (vtable slot 1, thiscall ()): 2 a mouse button down, 4 a key, 0xC the IME.
+        uint32_t kind()
+        {
+            return reinterpret_cast<uint32_t(__fastcall* const*)(cEvent*, void*)>(vtable)[1](this, nullptr);
+        }
     };
+
+    // A key event (cEvent_key, vtable ENG 00897568): a typed character (WM_CHAR) when bit 0 of flags is set.
+    struct cEventKey : cEvent
+    {
+        static constexpr uint32_t keyKind = 4;
+        static constexpr uint16_t typed = 0x01;     // in flags
+
+        uint16_t flags;
+        wchar_t ch;
+        uint16_t key;               // the character again, or a released key's virtual key
+        uint16_t modifiers;         // Shift / Ctrl / Alt (other bits in game than in the menus)
+
+        // `event` as a key event, nullptr if it is another kind.
+        static cEventKey* of(cEvent* event)
+        {
+            return event && event->kind() == keyKind ? static_cast<cEventKey*>(event) : nullptr;
+        }
+    };
+    static_assert(offsetof(cEventKey, ch) == 0x06 && offsetof(cEventKey, modifiers) == 0x0A);
 
     // A mouse button event (cEventMouseDown / cEventMouseUp).
     struct cEventMouse : cEvent
@@ -147,13 +172,36 @@ namespace Sacred
     static_assert(offsetof(cUI_StaticText64, textId) == 0x84 && offsetof(cUI_StaticText64, text) == 0x88);
     static_assert(offsetof(cUI_StaticText64, textEnd) == 0x8C && offsetof(cUI_StaticText64, font) == 0x94);
 
-    // A text field (vtable ENG 00897534, receiveEvent 00737AC0). Read-only ones take neither keys nor clicks: the LAN
-    // screen draws its game list's row frames with them.
-    struct cUI_EditControl : UiEmbedded<0x4F0>
+    // A text field (vtable ENG 00897534, receiveEvent 00737AC0, render 007382F0). Read-only ones take neither keys nor
+    // clicks: the LAN screen draws its game list's row frames with them (and cUI_DigitEdit, its subclass, is one).
+    // The game only appends: a typed character goes to the end, Backspace takes the last one, and render draws the text
+    // from `scroll` with a blinking "_" after it.
+    struct cUI_EditControl : cUI_Control2
     {
-        static constexpr uint32_t readOnly = 0x800000;  // in flags
+        // In flags.
+        static constexpr uint32_t password = 0x10000;   // drawn as '*'
+        static constexpr uint32_t readOnly = 0x800000;
+        static constexpr uint32_t upperCase = 0x4000000; // typed characters go through towupper
+
+        uint8_t _78[0x84 - 0x78];
+        wchar_t text[512];          // setText copies at most 256 characters, zero-filled: text[256..] stay 0
+        uint8_t maxLength;          // characters are only added while the text is shorter
+        uint8_t _485[0x48A - 0x485];
+        uint16_t font;              // cFontManager id
+        uint32_t color;             // ARGB
+        uint8_t _490[0x498 - 0x490];
+        int32_t textX, textY;       // the text's offset in the field (plus 4, 2)
+        uint8_t noDot;              // '.' is not taken
+        uint8_t noSlash;            // '\' and '/' are not taken (file names)
+        uint8_t _4a2[0x4A4 - 0x4A2];
+        uint32_t fontFlags;         // cFont::draw's; 1 = centered (the cUI_DigitEdit fields)
+        uint16_t scroll;            // the first character drawn while it has the focus
+        uint8_t _4aa[0x4F0 - 0x4AA];
     };
-    static_assert(sizeof(cUI_EditControl) == 0x4F0);
+    static_assert(offsetof(cUI_EditControl, text) == 0x84 && offsetof(cUI_EditControl, maxLength) == 0x484);
+    static_assert(offsetof(cUI_EditControl, font) == 0x48A && offsetof(cUI_EditControl, textX) == 0x498);
+    static_assert(offsetof(cUI_EditControl, noDot) == 0x4A0 && offsetof(cUI_EditControl, fontFlags) == 0x4A4);
+    static_assert(offsetof(cUI_EditControl, scroll) == 0x4A8 && sizeof(cUI_EditControl) == 0x4F0);
 
     // A list of text lines (vtable ENG 00897620, receiveEvent 0074FBA0, render 0074FD70): it shows height /
     // lineHeight lines from firstLine at its top. A click selects line firstLine + (y - top) / lineHeight, a row
@@ -721,7 +769,12 @@ namespace Sacred
     {
         struct Vtable
         {
-            void* _00[10];
+            void* _00[6];
+            // Draws the text from the rect's top left (cFontTTF2 ENG 0064E9C0); it breaks lines wider than the rect at
+            // spaces. `\` starts a colour code, as in textWidth.
+            uint32_t(__fastcall* draw)(cFont* self, void* edx, IDirect3DDevice7* device, UiRect* rect, const wchar_t* text,
+                uint32_t color, uint32_t flags);
+            void* _1c[3];
             // The height of a character's line in pixels of the 1024x768 layout (in the low 16 bits).
             uint32_t(__fastcall* lineHeight)(cFont* self, void* edx, uint32_t ch);
             // The text's width in pixels of the 1024x768 layout, the widest line's (cFontTTF2 ENG 00650F70); the other
@@ -731,9 +784,14 @@ namespace Sacred
 
         const Vtable* vtable;
 
+        void draw(IDirect3DDevice7* device, UiRect rect, const wchar_t* text, uint32_t color, uint32_t flags)
+        {
+            vtable->draw(this, nullptr, device, &rect, text, color, flags);
+        }
         uint16_t textWidth(const wchar_t* text) { return vtable->textWidth(this, nullptr, text); }
         int16_t lineHeight(wchar_t ch) { return static_cast<int16_t>(vtable->lineHeight(this, nullptr, ch)); }
     };
+    static_assert(offsetof(cFont::Vtable, draw) == 0x18);
     static_assert(offsetof(cFont::Vtable, lineHeight) == 0x28 && offsetof(cFont::Vtable, textWidth) == 0x2C);
 
     // The UI fonts (ENG 00649BE0 makes them).

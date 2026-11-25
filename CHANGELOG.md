@@ -14,3 +14,10 @@
   chosen resolution (exclusive), `Windowed` is a window with a title bar. The old `Borderless` key is ignored.
 - The water in the main menu and the character selection moves at the same speed at any frame rate (it sped up
   with the frame limit).
+- A screenshot (Print Screen, Ctrl+B) no longer makes the animations and effects jump: the game switched its clocks
+  to its video capture mode for the captured frame.
+- `[Render] SMAA` no longer washes out the whole picture: after its first frame in game everything, the menus
+  included, was drawn too bright (an sRGB state it set stayed on).
+- Text fields (savegame and character names, chat, network screens) edit like a normal text box: a movable caret
+  (arrows, Home / End, click, Ctrl for words), selection (Shift, Ctrl+A, mouse drag), Delete, and Ctrl+C / X / V
+  with the Windows clipboard.

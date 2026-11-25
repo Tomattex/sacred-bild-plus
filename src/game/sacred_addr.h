@@ -30,6 +30,7 @@ namespace Sacred
     struct cTextureManager;
     struct cUI_Book;
     struct cUI_Control2;
+    struct cUI_EditControl;
     struct cUI_Manager;
     struct cUI_NetworkInfo;
     struct cNetPlayers;
@@ -148,13 +149,12 @@ namespace Sacred::Addr
     // popped (00655180); this is that renderCursor call's return address. The plain cursor is drawn by another call.
     inline uintptr_t worldCursorSpecialRenderReturn{};  // ENG 00612E6F
     inline uintptr_t captureLockBackReturn{};           // ENG 006136AB; after captureInternal's call to lockBack
-    // Screenshots: dxDriver7_startCapture (ENG 00648660, thiscall (frames)) sets dxDriver7::captureFramesLeft; every
-    // caller (Print Screen, the game's screenshot key, a debug key) asks for one frame. While it is set,
-    // dxDriver7_flip locks the back buffer and calls captureScreenshot: mode -1 = one screenshot,
-    // written by writeTga1024x768 (ENG 006482C0) as .\Capture\shotNNNN.tga, which a thread (ENG 00648430) converts to a
-    // quality 50 JPEG through IJL. Both assume 1024x768 (the 32-bit path ignores the pitch). Modes >= 0 copy 3 MB
-    // frames into a mapped file ("vidobj"), < -1 write them out as cap%04d.tga: only reached with more than one frame.
-    inline Cdecl<void(void* bits, int pitch, int mode)> captureScreenshot{}; // ENG 006487D0
+    // Screenshots: dxDriver7_startCapture (thiscall (frames)) sets dxDriver7::captureFramesLeft; every caller (Print
+    // Screen, Ctrl+B, a debug key) asks for one frame. The next dxDriver7_flip locks the back buffer and calls
+    // captureScreenshot (ENG 006487D0): the top-left 1024x768 as .\Capture\shotNNNN.tga plus a JPEG, sheared at other
+    // widths. During that flip the game's clocks (ENG 00641520) run in its video capture mode, a fixed 1/24 s per frame
+    // instead of the real time, so a clock that ticked on another thread meanwhile made the game time jump.
+    inline Thiscall<void(dxDriver7* self, int frames)> dxDriver7_startCapture{}; // ENG 00648660
 
     // World <-> pixel conversion (cdecl (out, point, rotation, projection) -> out). Pixels assume a projection
     // spanning 1024x768 pixels: true for g_unzoomedProjection, not for the device projection (W x H).
@@ -322,6 +322,11 @@ namespace Sacred::Addr
     inline Cdecl<cTextResources*()> textResources_instance{}; // ENG 006725E0
     inline Thiscall<const wchar_t* const*(cTextResources* self, uint32_t id)> textResources_get{}; // ENG 00672C90
     inline Global<cFontManager*> g_pFontManager{};      // ENG 00CDCA70
+    // Text fields (cUI_EditControl): receiveEvent and render (vtable ENG 00897534 slots 4 and 5), and render's call
+    // that looks up the text's font (thiscall on cFontManager (id) -> cFont, ENG 00649CB0; no font: no text drawn).
+    inline Thiscall<uint32_t(cUI_EditControl* self, cEvent* event)> cUI_EditControl_receiveEvent{}; // ENG 00737AC0
+    inline Thiscall<uint32_t(cUI_EditControl* self, IDirect3DDevice7* device)> cUI_EditControl_render{}; // ENG 007382F0
+    inline uintptr_t editRenderFontCall{};              // ENG 0073850B
     // The Underworld add-on is there (the portal message box lists its 14th portal, the island).
     inline Global<uint8_t> g_hasAddon{};                // ENG 0182EBEC
     // The loaded Settings.cfg (loader 0x81C870): byte +2 is FSAA_FILTER, which the sprite passes read to pull their

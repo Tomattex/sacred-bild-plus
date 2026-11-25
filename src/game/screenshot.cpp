@@ -1,5 +1,5 @@
 #include "game/screenshot.h"
-#include "game/frame_hooks.h"
+#include "game/sacred_addr.h"
 #include "config/screenshot.h"
 #include "log.h"
 #include "patch.h"
@@ -11,6 +11,7 @@
 #include <wincodec.h>
 #include <wrl/client.h>
 
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <string>
@@ -24,8 +25,10 @@ namespace
 {
     using namespace Sacred;
 
-    // Called by dxDriver7_flip with the locked back buffer.
-    decltype(Addr::captureScreenshot)::Ptr g_origCapture = nullptr;
+    decltype(Addr::dxDriver7_startCapture)::Ptr g_origStartCapture = nullptr;
+
+    // Print Screen / Ctrl+B pressed (the window thread); taken by the next flip (the presenting thread).
+    std::atomic<bool> g_requested{false};
 
     // Not exported by every SDK library this links against.
     constexpr GUID kClsidWicImagingFactory = {0xcacaf262, 0x9370, 0x4615, {0xa1, 0x3b, 0x9f, 0x55, 0x39, 0xda, 0x4c, 0x0a}};
@@ -156,14 +159,13 @@ namespace
 
     // Copies the whole back buffer and saves it on a worker thread. False if its format is not one this handles
     // (the game's own capture runs then).
-    bool screenshot(const uint8_t* bits, int pitch)
+    bool screenshot(IDirectDrawSurface7* back)
     {
-        dxDriver7* driver = FrameHooks::dxDriver();
-        IDirectDrawSurface7* back = driver ? driver->back : nullptr;
         DDSURFACEDESC2 desc = {};
         desc.dwSize = sizeof(desc);
-        if (!back || FAILED(back->GetSurfaceDesc(&desc)))
+        if (!back || FAILED(back->Lock(nullptr, &desc, DDLOCK_WAIT | DDLOCK_READONLY, nullptr)))
         {
+            LOG("Screenshot: the back buffer could not be read: left to the game");
             return false;
         }
         const DDPIXELFORMAT& pf = desc.ddpfPixelFormat;
@@ -171,6 +173,7 @@ namespace
         const bool rgbx = pf.dwRBitMask == 0xFF && pf.dwGBitMask == 0xFF00 && pf.dwBBitMask == 0xFF0000;
         if (pf.dwRGBBitCount != 32 || !(bgrx || rgbx))
         {
+            back->Unlock(nullptr);
             LOG("Screenshot: back buffer format {} bits, masks {:x} {:x} {:x}: left to the game", pf.dwRGBBitCount,
                 pf.dwRBitMask, pf.dwGBitMask, pf.dwBBitMask);
             return false;
@@ -178,6 +181,7 @@ namespace
         const int number = reserveNumber();
         if (number < 0)
         {
+            back->Unlock(nullptr);
             LOG("Screenshot: Capture\\shot0000 .. shot9999 are all taken");
             return true;
         }
@@ -186,10 +190,11 @@ namespace
         image.height = desc.dwHeight;
         image.bgr.resize(static_cast<size_t>(image.width) * 3 * image.height);
         const int blue = bgrx ? 0 : 2, red = 2 - blue;
+        const auto* bits = static_cast<const uint8_t*>(desc.lpSurface);
         uint8_t* out = image.bgr.data();
         for (UINT y = 0; y < image.height; ++y)
         {
-            const uint8_t* in = bits + static_cast<ptrdiff_t>(y) * pitch;
+            const uint8_t* in = bits + static_cast<ptrdiff_t>(y) * desc.lPitch;
             for (UINT x = 0; x < image.width; ++x, in += 4, out += 3)
             {
                 out[0] = in[blue];
@@ -197,24 +202,33 @@ namespace
                 out[2] = in[red];
             }
         }
+        back->Unlock(nullptr);
         std::thread(save, std::move(image), number, Config::screenshot.jpeg).detach();
         return true;
     }
 
-    // Mode -1 is a single screenshot. Other modes belong to the game's frame-sequence capture (frames >= 0 into a
-    // mapped file, < -1 writes them out), which assumes 1024x768; nothing in the game starts it with more than one
-    // frame, so it is left as it is.
-    void __cdecl hookCapture(void* bits, int pitch, int mode)
+    // One frame is a screenshot: taken by the next flip without the game's capture, which would put its clocks in
+    // video capture mode for that flip. More frames are the game's video capture, which nothing in the game starts.
+    void __fastcall hookStartCapture(dxDriver7* self, void* edx, int frames)
     {
-        if (mode == -1 && bits && screenshot(static_cast<const uint8_t*>(bits), pitch))
+        if (frames == 1)
         {
+            g_requested.store(true, std::memory_order_relaxed);
             return;
         }
-        g_origCapture(bits, pitch, mode);
+        g_origStartCapture(self, edx, frames);
+    }
+}
+
+void Screenshot::beforeFlip(dxDriver7* driver)
+{
+    if (g_requested.exchange(false, std::memory_order_relaxed) && !screenshot(driver->back))
+    {
+        g_origStartCapture(driver, nullptr, 1);     // this flip takes it
     }
 }
 
 void Screenshot::install()
 {
-    Patch::hook(g_origCapture, Addr::captureScreenshot, &hookCapture, "captureScreenshot");
+    Patch::hook(g_origStartCapture, Addr::dxDriver7_startCapture, &hookStartCapture, "dxDriver7::startCapture");
 }

@@ -100,7 +100,7 @@ SACRED = [
     ('menuWater_update', 0x0075EF40, 'func'),
     ('renderLimiterReturn', 0x0060EA6E, 'code'),
     ('captureLockBackReturn', 0x006136AB, 'code'),
-    ('captureScreenshot', 0x006487D0, 'func'),
+    ('dxDriver7_startCapture', 0x00648660, 'func'),
     # world view
     ('pixelsToWorld', 0x00623940, 'func'),
     ('worldToPixels', 0x00623B60, 'func'),
@@ -171,6 +171,9 @@ SACRED = [
     ('textResources_instance', 0x006725E0, 'func'),
     ('textResources_get', 0x00672C90, 'func'),
     ('g_pFontManager', 0x00CDCA70, 'data'),
+    ('cUI_EditControl_receiveEvent', 0x00737AC0, 'func'),
+    ('cUI_EditControl_render', 0x007382F0, 'func'),
+    ('editRenderFontCall', 0x0073850B, 'code'),
     ('g_hasAddon', 0x0182EBEC, 'data'),
     ('g_gameSettings', 0x0182EE78, 'data'),
     ('g_portalTexts', 0x017EA420, 'data'),

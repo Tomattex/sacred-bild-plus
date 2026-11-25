@@ -1142,6 +1142,7 @@ namespace DDraw9
     HRESULT Device::Clear(DWORD count, LPD3DRECT rects, DWORD flags, D3DCOLOR color, D3DVALUE z, DWORD stencil)
     {
         std::scoped_lock lock(m_lock);
+        syncOverlay();      // clears the viewport, which SMAA or the overlay may have changed
         syncDepth();
         if (!m_depth)
         {

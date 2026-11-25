@@ -25,6 +25,7 @@
 #include "game/skin_check.h"
 #include "game/sound_lock.h"
 #include "game/sprite_quads.h"
+#include "game/text_edit.h"
 #include "game/ui_anchor.h"
 #include "game/ui_windows.h"
 #include "game/ui_canvas.h"
@@ -140,6 +141,7 @@ void Sacred::installHooks()
     OptionsScreen::install();
     Movie::install();
     Screenshot::install();
+    TextEdit::install();
     MapCache::install();
     SoundLock::install();
     GroundQuads::install();
