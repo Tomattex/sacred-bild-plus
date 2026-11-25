@@ -99,6 +99,7 @@ SACRED = [
     ('cEngine_renderThreadRun', 0x0060E350, 'func'),
     ('frameLimiter', 0x0060A9F0, 'func'),
     ('menuWater_update', 0x0075EF40, 'func'),
+    ('weatherRender', 0x004190D0, 'func'),
     ('renderLimiterReturn', 0x0060EA6E, 'code'),
     ('captureLockBackReturn', 0x006136AB, 'code'),
     ('dxDriver7_startCapture', 0x00648660, 'func'),
