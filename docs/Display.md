@@ -85,9 +85,11 @@ The game's font has codes: `\cAARRGGBB` colours the text after it (hex ARGB), `\
 `\gFFFFFFFFIIIIIIII` draws sprite `IIIIIIII` (hex) of the UI's sprite table in the line. A code is edited as one
 character: the arrows step over it, Backspace and Delete take it whole. A right click into the character name field
 (the character menu) opens a palette under it: twelve colours, the field's own colour (A) and sixteen of the game's
-sprites (skulls, stars, gems, a crown...). A click puts the code at the caret, a colour around the selection when
-there is one; the palette stays open for more, and Esc, another right click or a click elsewhere closes it. A code
-that doesn't fit in the field's length is not inserted.
+sprites (skulls, stars, gems, a crown...). A colour replaces colours instead of adding up: without a selection it
+colours the whole name, with one it colours the selection (which stays selected, to try another) and the colour
+after it comes back; A takes colours out the same way. A sprite goes in at the caret. The palette shows how much of
+the field the name takes (amber once a sprite no longer fits) and dims what doesn't fit; it stays open for more, and
+Esc, another right click or a click elsewhere closes it.
 
 The field's own rules stay: its length limit, upper case, no dots or slashes in file names. The keys the game never
 gave a text field (arrows, Home, End, Delete) reach it as characters of the Unicode private use area, so they arrive

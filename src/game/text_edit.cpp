@@ -47,6 +47,7 @@ namespace
     constexpr uint16_t kIcons[] = {127, 218, 206, 207, 208, 406, 432, 421, 120, 121, 122, 123, 412, 413, 418, 176};
     constexpr int kCell = 20, kPad = 5;
     constexpr uint32_t kPanelColor = 0xEC140F0A, kBorderColor = 0xFF8C6A3A, kHoverColor = 0x40FFFFFF;
+    constexpr uint32_t kDimColor = 0xC8141210, kCountColor = 0xFFB8B0A0, kFullColor = 0xFFE0A040;
 
     // The caret and selection of the field that has the keyboard focus. Its events (characters, clicks) run on the
     // thread that hands the UI its events: the window's in the menus, the engine's render thread in game. Its render
@@ -88,6 +89,7 @@ namespace
     bool g_paletteWanted = false;
     cFont* g_paletteFont = nullptr;
     uint32_t g_paletteTextColor = 0;
+    size_t g_paletteLimit = 0;
     bool g_swallowUp[2] = {};       // the palette had this button's (left, right) down: its up too
     bool g_swallowEscape = false;   // Esc closed the palette: its character and key up go nowhere
 
@@ -529,9 +531,13 @@ namespace
         }
     }
 
+    struct Applied;
+    Applied apply(const Cell& cell);
+    size_t appliedLength(const Cell& cell);
+
     // The palette under (or over) the name field (`box`, canvas units): a row of colours and the field's own, a row of
     // sprites; the cell under the cursor lit. Its cells are kept for the window procedure's clicks.
-    void drawPalette(uint32_t textColor, cFont* font, IDirect3DDevice7* device, const UiRect& box)
+    void drawPalette(uint32_t textColor, cFont* font, IDirect3DDevice7* device, const UiRect& box, size_t limit)
     {
         const int width = 2 * kPad + static_cast<int>(std::size(kIcons)) * kCell;
         const int height = 3 * kPad + 2 * kCell;
@@ -554,31 +560,55 @@ namespace
         p.y = y + frame.y;
         p.w = static_cast<float>(width);
         p.h = static_cast<float>(height);
+        // A cell; false if what it does no longer fits the field (it is drawn dimmed).
         const auto cell = [&](Cell::Kind kind, uint32_t value, int cx, int cy) {
-            if (mx >= cx && mx < cx + kCell && my >= cy && my < cy + kCell)
+            const Cell made{kind, value, cx + frame.x, cy + frame.y};
+            const bool fits = appliedLength(made) <= limit;
+            if (fits && mx >= cx && mx < cx + kCell && my >= cy && my < cy + kCell)
             {
                 fillRect(device, fx(cx), fx(cy), fx(cx + kCell), fx(cy + kCell), kHoverColor);
             }
-            p.cells.push_back({kind, value, cx + frame.x, cy + frame.y});
+            p.cells.push_back(made);
+            return fits;
+        };
+        const auto dim = [&](int cx, int cy) {
+            fillRect(device, fx(cx), fx(cy), fx(cx + kCell), fx(cy + kCell), kDimColor);
         };
         int cx = x + kPad, cy = y + kPad;
         for (uint32_t color : kColors)
         {
-            cell(Cell::Color, color, cx, cy);
+            const bool fits = cell(Cell::Color, color, cx, cy);
             fillRect(device, fx(cx + 3), fx(cy + 3), fx(cx + kCell - 3), fx(cy + kCell - 3), 0xFF000000);
             fillRect(device, fx(cx + 4), fx(cy + 4), fx(cx + kCell - 4), fx(cy + kCell - 4), color);
+            if (!fits)
+            {
+                dim(cx, cy);
+            }
             cx += kCell;
         }
-        cell(Cell::Reset, 0, cx, cy);
+        const bool resetFits = cell(Cell::Reset, 0, cx, cy);
         font->draw(device, UiRect{cx + 5, cy + 1, kCell, kCell}, L"A", textColor, 0);
+        if (!resetFits)
+        {
+            dim(cx, cy);
+        }
+        // How much of the field the name takes: amber once a sprite no longer fits.
+        const size_t used = g_field.text.size();
+        const std::wstring count = std::to_wstring(used) + L"/" + std::to_wstring(limit);
+        font->draw(device, UiRect{cx + kCell + 6, cy + 2, 64, kCell}, count.c_str(),
+            used + 18 > limit ? kFullColor : kCountColor, 0);
         cx = x + kPad;
         cy += kCell + kPad;
         for (uint16_t icon : kIcons)
         {
-            cell(Cell::Icon, icon, cx, cy);
+            const bool fits = cell(Cell::Icon, icon, cx, cy);
             wchar_t code[24];
             std::swprintf(code, std::size(code), L"\\gFFFFFFFF%08X", icon);
             font->draw(device, UiRect{cx + 2, cy + 1, kCell, kCell}, code, 0xFFFFFFFF, 0);
+            if (!fits)
+            {
+                dim(cx, cy);
+            }
             cx += kCell;
         }
         g_palette = std::move(p);
@@ -709,6 +739,7 @@ namespace
             g_paletteWanted = f.palette;
             g_paletteFont = font;
             g_paletteTextColor = control->color;
+            g_paletteLimit = std::min<size_t>(control->maxLength, kMaxLength);
         }
     }
 
@@ -731,43 +762,122 @@ namespace
         return result;
     }
 
-    // Under g_lock: puts a palette cell's code at the caret, or a colour around the selection. A code goes in whole or
-    // not at all (the field's length).
-    void insertCode(cUI_EditControl* control, const Cell& cell)
+    // A colour code (\c or \r) of `length` at i.
+    bool colorCode(const std::wstring& t, size_t i, size_t length)
     {
-        std::wstring code;
-        wchar_t buffer[24];
+        return (length == 10 && t[i + 1] == L'c') || (length == 2 && t[i + 1] == L'r');
+    }
+
+    // The text with its colour codes taken out.
+    std::wstring withoutColors(const std::wstring& t)
+    {
+        std::wstring out;
+        for (size_t i = 0; i < t.size();)
+        {
+            const size_t length = codeLength(t, i);
+            if (!colorCode(t, i, length))
+            {
+                out.append(t, i, length);
+            }
+            i += length;
+        }
+        return out;
+    }
+
+    // The colour code in effect at i (the last one before it); empty for the field's own colour.
+    std::wstring colorAt(const std::wstring& t, size_t i)
+    {
+        std::wstring color;
+        for (size_t k = 0; k < i;)
+        {
+            const size_t length = codeLength(t, k);
+            if (length == 10 && t[k + 1] == L'c')
+            {
+                color = t.substr(k, 10);
+            }
+            else if (length == 2 && t[k + 1] == L'r')
+            {
+                color.clear();
+            }
+            k += length;
+        }
+        return color;
+    }
+
+    // Under g_lock: what a palette cell makes of the text, and the selection after it. Colours replace colours instead
+    // of piling up: without a selection a colour (or the field's own) applies to the whole name and the others go; with
+    // one it applies to the selection, whose colours go, the colour after it comes back, and the selection stays on it
+    // to try another. A sprite goes in at the caret.
+    struct Applied
+    {
+        std::wstring text;
+        size_t anchor, caret;
+    };
+
+    Applied apply(const Cell& cell)
+    {
+        const std::wstring& t = g_field.text;
+        const size_t from = selectionStart(), to = selectionEnd();
+        wchar_t buffer[24] = {};
+        if (cell.kind == Cell::Icon)
+        {
+            std::swprintf(buffer, std::size(buffer), L"\\gFFFFFFFF%08X", cell.value);
+            const std::wstring code = buffer;
+            return {t.substr(0, from) + code + t.substr(to), from + code.size(), from + code.size()};
+        }
         if (cell.kind == Cell::Color)
         {
             std::swprintf(buffer, std::size(buffer), L"\\c%08X", cell.value);
-            code = buffer;
         }
-        else if (cell.kind == Cell::Reset)
+        const std::wstring code = buffer;
+        if (from == to)
         {
-            code = L"\\r";
+            const std::wstring text = code + withoutColors(t);
+            return {text, text.size(), text.size()};
         }
-        else
+        const std::wstring tail = t.substr(to);
+        const std::wstring after = colorAt(t, to);
+        const std::wstring open = cell.kind == Cell::Color ? code : colorAt(t, from).empty() ? L"" : L"\\r";
+        const std::wstring middle = withoutColors(t.substr(from, to - from));
+        std::wstring close;
+        if (!tail.empty() && !colorCode(tail, 0, codeLength(tail, 0)))
         {
-            std::swprintf(buffer, std::size(buffer), L"\\gFFFFFFFF%08X", cell.value);
-            code = buffer;
+            close = !after.empty() ? after : cell.kind == Cell::Color ? L"\\r" : L"";
         }
-        const size_t from = selectionStart(), to = selectionEnd();
-        const bool wrap = cell.kind == Cell::Color && from < to;
-        const std::wstring add = wrap ? code + g_field.text.substr(from, to - from) + L"\\r" : code;
-        const size_t limit = std::min<size_t>(control->maxLength, kMaxLength);
-        if (g_field.text.size() - (to - from) + add.size() > limit)
+        return {t.substr(0, from) + open + middle + close + tail, from, from + open.size() + middle.size()};
+    }
+
+    // The most the field takes.
+    size_t fieldLimit(const cUI_EditControl* control)
+    {
+        return std::min<size_t>(control->maxLength, kMaxLength);
+    }
+
+    size_t appliedLength(const Cell& cell)
+    {
+        return apply(cell).text.size();
+    }
+
+    // Under g_lock: a palette cell applied, if its result fits the field.
+    void insertCode(cUI_EditControl* control, const Cell& cell)
+    {
+        Applied result = apply(cell);
+        if (result.text.size() > fieldLimit(control))
         {
             return;
         }
-        store(control, g_field.text.substr(0, from) + add + g_field.text.substr(to));
-        moveCaret(from + add.size(), false);
+        store(control, std::move(result.text));
+        g_field.anchor = result.anchor;
+        moveCaret(result.caret, true);
     }
 
     // Clicks and Esc for the palette. True: the message is the palette's.
     bool paletteMessage(UINT message, WPARAM wParam)
     {
-        const bool down = message == WM_LBUTTONDOWN || message == WM_RBUTTONDOWN;
-        const int button = message == WM_RBUTTONDOWN || message == WM_RBUTTONUP ? 1 : 0;
+        // The game's window class takes double clicks: the second of two quick clicks comes as one.
+        const bool down = message == WM_LBUTTONDOWN || message == WM_RBUTTONDOWN || message == WM_LBUTTONDBLCLK ||
+            message == WM_RBUTTONDBLCLK;
+        const int button = message == WM_RBUTTONDOWN || message == WM_RBUTTONDBLCLK || message == WM_RBUTTONUP ? 1 : 0;
         if (message == WM_LBUTTONUP || message == WM_RBUTTONUP)
         {
             return std::exchange(g_swallowUp[button], false);
@@ -891,5 +1001,5 @@ void TextEdit::drawOverlay(IDirect3DDevice7* device)
     const UiRect box{static_cast<int32_t>(std::lround(g_nameRect[0] - frame.x)),
         static_cast<int32_t>(std::lround(g_nameRect[1] - frame.y)), static_cast<int16_t>(g_nameRect[2]),
         static_cast<int16_t>(g_nameRect[3])};
-    drawPalette(g_paletteTextColor, g_paletteFont, device, box);
+    drawPalette(g_paletteTextColor, g_paletteFont, device, box, g_paletteLimit);
 }
