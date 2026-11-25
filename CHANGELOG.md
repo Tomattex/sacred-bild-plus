@@ -14,6 +14,9 @@
   effect away when all were busy (in a big fight up to half of them in a second); it now takes the voice that ends
   soonest.
   Looping sounds keep theirs.
+- `[Display] FpsLimit` no longer slows the game down when it runs below the limit: every frame that took longer
+  than the limit waited another whole frame period (at 240 a 15 ms frame ran at 52 instead of 67 fps, a 6 ms one
+  at 98 instead of 166).
 
 ### Sacred Gear
 

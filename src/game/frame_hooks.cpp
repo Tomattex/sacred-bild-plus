@@ -116,8 +116,8 @@ namespace
     // Waits for the next frame at `fps`, in place of the game's limiter, which spun on Sleep(0) for the whole wait and
     // kept a core busy. Sleeps on the timer in 100 ns units, without a final spin: waking a little off costs less
     // than a busy core. Each frame is due one period after the previous one was due, so the next wait makes up for
-    // that and the rate averages out exactly; a frame more than a period late restarts the cadence from now instead
-    // of catching up. Per thread: the menus and the game pace their own loops.
+    // that and the rate averages out exactly; a late frame doesn't wait, and one more than a period late restarts the
+    // cadence from now instead of catching up. Per thread: the menus and the game pace their own loops.
     void paceFrame(int fps)
     {
         static const int64_t freq = [] { LARGE_INTEGER f; QueryPerformanceFrequency(&f); return f.QuadPart; }();
@@ -125,12 +125,16 @@ namespace
         thread_local int64_t due = 0;
         const int64_t period = freq / std::clamp(fps, 1, 1000);
         const int64_t now = qpcNow();
-        if (due == 0 || now - due > period)
+        due = due == 0 ? now : due + period;
+        if (now - due > period)
         {
             due = now;
         }
-        due += period;
         const int64_t wait = due - now;
+        if (wait <= 0)
+        {
+            return;
+        }
         LARGE_INTEGER relative;
         relative.QuadPart = -(wait * 10000000 / freq);
         if (timer && SetWaitableTimer(timer, &relative, 0, nullptr, nullptr, FALSE))
