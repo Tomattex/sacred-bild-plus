@@ -680,6 +680,8 @@ void Ui::Form::layout()
         const Control& c = *row.controls.front();
         return c.m_type == Type::Label && !c.m_fixedWidth;
     };
+    // The widest label in front of a row's first control; a page's column uses its sections' widest, so the controls
+    // after the labels line up down the whole column.
     const auto labelColumn = [&](const Block& block) {
         int width = 0;
         for (const Row& row : block.rows)
@@ -735,8 +737,7 @@ void Ui::Form::layout()
         }
         return width;
     };
-    const auto blockWidth = [&](const Block& block) {
-        const int labels = labelColumn(block);
+    const auto blockWidth = [&](const Block& block, int labels) {
         int width = 0;
         for (const Row& row : block.rows)
         {
@@ -789,10 +790,9 @@ void Ui::Form::layout()
         return rowHeight;
     };
     // Returns the bottom.
-    const auto placeBlock = [&](Block& block, int x, int width, int y) {
+    const auto placeBlock = [&](Block& block, int x, int width, int y, int labels) {
         const bool boxed = !block.title.empty();
         const int pad = boxed ? kBoxPadding : 0;
-        const int labels = labelColumn(block);
         int bottom = y + (boxed ? kBoxTop : 0);
         for (size_t i = 0; i < block.rows.size(); ++i)
         {
@@ -806,18 +806,28 @@ void Ui::Form::layout()
         block.cy = static_cast<short>(bottom - y);
         return bottom;
     };
+    const auto columnLabels = [&](const Column& column) {
+        int width = 0;
+        for (const Block& block : column.blocks)
+        {
+            width = std::max(width, labelColumn(block));
+        }
+        return width;
+    };
     const auto columnWidth = [&](const Column& column) {
+        const int labels = columnLabels(column);
         int width = kMinColumnWidth;
         for (const Block& block : column.blocks)
         {
-            width = std::max(width, blockWidth(block));
+            width = std::max(width, blockWidth(block, labels));
         }
         return width;
     };
 
     // Widths: every page gets the widest page's width, its columns share the difference; the footer and the row of
     // page buttons fit in it.
-    const int footerWidth = (m_footer.rows.empty() ? 0 : blockWidth(m_footer) + kGap) + 2 * kButtonWidth + kGap;
+    const int footerLabels = labelColumn(m_footer);
+    const int footerWidth = (m_footer.rows.empty() ? 0 : blockWidth(m_footer, footerLabels) + kGap) + 2 * kButtonWidth + kGap;
     int navTotal = 0;
     for (const Page& page : m_pages)
     {
@@ -852,13 +862,14 @@ void Ui::Form::layout()
             const int width = columns[c] + share;
             int y = kPagePadding;
             bool first = true;
+            const int labels = columnLabels(m_pages[p].columns[c]);
             for (Block& block : m_pages[p].columns[c].blocks)
             {
                 if (block.rows.empty() && block.title.empty())
                 {
                     continue;
                 }
-                y = placeBlock(block, x, width, y + (first ? 0 : kBlockGap));
+                y = placeBlock(block, x, width, y + (first ? 0 : kBlockGap), labels);
                 first = false;
             }
             pageHeight = std::max(pageHeight, y + kPagePadding);
@@ -873,10 +884,10 @@ void Ui::Form::layout()
     m_pagesY = m_navY + kNavHeight + kMargin;
     m_footerY = m_pagesY + m_page.cy + kMargin + kMargin / 2;
     const int width = m_page.cx - 2 * (kButtonWidth + kGap);
-    int footerHeight = placeBlock(m_footer, kMargin, width, m_footerY) - m_footerY;
+    int footerHeight = placeBlock(m_footer, kMargin, width, m_footerY, footerLabels) - m_footerY;
     if (footerHeight < kButtonHeight)
     {
-        placeBlock(m_footer, kMargin, width, m_footerY + (kButtonHeight - footerHeight) / 2);
+        placeBlock(m_footer, kMargin, width, m_footerY + (kButtonHeight - footerHeight) / 2, footerLabels);
         footerHeight = kButtonHeight;
     }
     m_window = {m_page.cx + 2 * kMargin, m_footerY + footerHeight + kMargin};
@@ -914,7 +925,8 @@ void Ui::Form::addControl(DialogTemplate& dialog, const Control& c) const
 
 Ui::DialogTemplate Ui::Form::mainTemplate(const wchar_t* title) const
 {
-    DialogTemplate dialog(DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, WS_EX_APPWINDOW,
+    // WS_CLIPCHILDREN: the window paints its whole background, never over its controls.
+    DialogTemplate dialog(DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPCHILDREN, WS_EX_APPWINDOW,
         m_window.cx, m_window.cy, title);
     const Metrics metrics;
     int x = kMargin;
@@ -941,7 +953,7 @@ Ui::DialogTemplate Ui::Form::mainTemplate(const wchar_t* title) const
 
 Ui::DialogTemplate Ui::Form::pageTemplate(const Page& page) const
 {
-    DialogTemplate dialog(DS_CONTROL | WS_CHILD, 0, m_page.cx, m_page.cy, L"");
+    DialogTemplate dialog(DS_CONTROL | WS_CHILD | WS_CLIPCHILDREN, 0, m_page.cx, m_page.cy, L"");
     for (const Column& column : page.columns)
     {
         for (const Block& block : column.blocks)

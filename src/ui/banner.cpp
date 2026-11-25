@@ -148,7 +148,12 @@ namespace
         if (!factory || toWidth <= 0 || toHeight <= 0 ||
             FAILED(factory->CreateBitmapFromMemory(width, height, kWicPixelFormat32bppPBGRA, width * 4,
                 static_cast<UINT>(pixels.size() * 4), reinterpret_cast<BYTE*>(const_cast<uint32_t*>(pixels.data())), &bitmap)) ||
-            FAILED(factory->CreateBitmapScaler(&scaler)) ||
+            FAILED(factory->CreateBitmapScaler(&scaler)))
+        {
+            return out;
+        }
+        // High-quality cubic (Windows 10 and later) keeps the letters' edges crisp; Fant elsewhere.
+        if (FAILED(scaler->Initialize(bitmap.Get(), toWidth, toHeight, WICBitmapInterpolationModeHighQualityCubic)) &&
             FAILED(scaler->Initialize(bitmap.Get(), toWidth, toHeight, WICBitmapInterpolationModeFant)))
         {
             return out;
@@ -159,6 +164,38 @@ namespace
             out.clear();
         }
         return out;
+    }
+
+    // The logo cut to what shows of it (its glows included), so that its size on the banner is the letters' size.
+    void crop(std::vector<uint32_t>& pixels, int& width, int& height)
+    {
+        int left = width, top = height, right = -1, bottom = -1;
+        for (int y = 0; y < height; ++y)
+        {
+            for (int x = 0; x < width; ++x)
+            {
+                if ((pixels[size_t(y) * width + x] >> 24) > 8)
+                {
+                    left = std::min(left, x);
+                    right = std::max(right, x);
+                    top = std::min(top, y);
+                    bottom = std::max(bottom, y);
+                }
+            }
+        }
+        if (right < left)
+        {
+            return;
+        }
+        const int w = right - left + 1, h = bottom - top + 1;
+        std::vector<uint32_t> out(size_t(w) * h);
+        for (int y = 0; y < h; ++y)
+        {
+            std::copy_n(&pixels[size_t(top + y) * width + left], w, &out[size_t(y) * w]);
+        }
+        pixels = std::move(out);
+        width = w;
+        height = h;
     }
 
     uint32_t hash(uint32_t x)
@@ -223,6 +260,7 @@ Ui::Banner::Banner(const std::wstring& gameDir, std::wstring caption) : m_captio
     else
     {
         keyWhite(m_logo, m_logoWidth, m_logoHeight);
+        crop(m_logo, m_logoWidth, m_logoHeight);
     }
     if (SUCCEEDED(com))
     {
@@ -258,12 +296,12 @@ void Ui::Banner::render(HDC dc, int width, int height)
     auto* out = static_cast<uint32_t*>(bits);
     leather(out, width, height);
 
-    // The logo, 88 % of the height, centered.
+    // The logo, 80 % of the height, centered.
     bool logo = false;
     if (!m_logo.empty())
     {
         const HRESULT com = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
-        const int lh = height * 88 / 100, lw = m_logoWidth * lh / m_logoHeight;
+        const int lh = height * 80 / 100, lw = m_logoWidth * lh / m_logoHeight;
         const std::vector<uint32_t> scaled = scale(m_logo, m_logoWidth, m_logoHeight, lw, lh);
         if (SUCCEEDED(com))
         {

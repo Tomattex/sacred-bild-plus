@@ -587,7 +587,7 @@ bool SettingsWindow::show(HMODULE module, const std::wstring& gameDir)
     const ExeIcons icons;
     form.icons(icons.big, icons.small);
     Ui::Banner banner(gameDir, L"SacredBild+ " SB_VER_STR);
-    form.banner(42, [&](HDC dc, const RECT& rect) { banner.paint(dc, rect); });
+    form.banner(54, [&](HDC dc, const RECT& rect) { banner.paint(dc, rect); });
     switch (form.run(module, L"SacredBild settings"))
     {
     case Form::Result::Failed:
