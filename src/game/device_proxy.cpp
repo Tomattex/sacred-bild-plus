@@ -578,9 +578,9 @@ bool DeviceProxy::clipQuad(DWORD fvf, uint8_t* verts)
     return true;
 }
 
-void DeviceProxy::fitTexels(DWORD fvf, uint8_t* verts)
+void DeviceProxy::fitTexels(DWORD fvf, uint8_t* verts, DWORD count)
 {
-    if (!m_texture0 || Fvf::texCount(fvf) == 0)
+    if (!m_texture0 || Fvf::texCount(fvf) == 0 || count < 4)
     {
         return;
     }
@@ -597,50 +597,67 @@ void DeviceProxy::fitTexels(DWORD fvf, uint8_t* verts)
     }
     const UINT stride = Fvf::stride(fvf);
     const UINT uv = Fvf::texCoordOffset(fvf, 0) / 4;
-    float* v[4];
+    auto vertex = [&](DWORD i) { return reinterpret_cast<float*>(verts + i * stride); };
     float minX = 1e30f, minY = 1e30f, maxX = -1e30f, maxY = -1e30f;
-    for (int i = 0; i < 4; ++i)
+    for (DWORD i = 0; i < count; ++i)
     {
-        v[i] = reinterpret_cast<float*>(verts + i * stride);
-        minX = std::min(minX, v[i][0]);
-        maxX = std::max(maxX, v[i][0]);
-        minY = std::min(minY, v[i][1]);
-        maxY = std::max(maxY, v[i][1]);
+        const float* p = vertex(i);
+        minX = std::min(minX, p[0]);
+        maxX = std::max(maxX, p[0]);
+        minY = std::min(minY, p[1]);
+        maxY = std::max(maxY, p[1]);
     }
     if (maxX - minX < 0.5f || maxY - minY < 0.5f)
     {
         return;
     }
-    // Only axis-aligned rectangles whose texture coordinates follow one axis each.
+    // Only axis-aligned rectangles whose texture coordinates follow one axis each: a quad, or one cut into rows or
+    // columns (the overview map's tiles are 6-vertex strips with a middle row).
     float u[2] = {}, t[2] = {};
     bool haveU[2] = {}, haveT[2] = {};
-    for (int i = 0; i < 4; ++i)
+    for (DWORD i = 0; i < count; ++i)
     {
-        const bool left = isNear(v[i][0], minX), top = isNear(v[i][1], minY);
-        if (!(left || isNear(v[i][0], maxX)) || !(top || isNear(v[i][1], maxY)))
+        const float* p = vertex(i);
+        const int x = isNear(p[0], minX) ? 0 : isNear(p[0], maxX) ? 1 : -1;
+        const int y = isNear(p[1], minY) ? 0 : isNear(p[1], maxY) ? 1 : -1;
+        if ((x >= 0 && haveU[x] && std::fabs(u[x] - p[uv]) > 0.0001f) ||
+            (y >= 0 && haveT[y] && std::fabs(t[y] - p[uv + 1]) > 0.0001f))
         {
             return;
         }
-        const int x = left ? 0 : 1, y = top ? 0 : 1;
-        if ((haveU[x] && std::fabs(u[x] - v[i][uv]) > 0.0001f) || (haveT[y] && std::fabs(t[y] - v[i][uv + 1]) > 0.0001f))
+        if (x >= 0)
         {
-            return;
+            u[x] = p[uv];
+            haveU[x] = true;
         }
-        u[x] = v[i][uv];
-        t[y] = v[i][uv + 1];
-        haveU[x] = haveT[y] = true;
+        if (y >= 0)
+        {
+            t[y] = p[uv + 1];
+            haveT[y] = true;
+        }
     }
     const float w = static_cast<float>(m_texture0Width), h = static_cast<float>(m_texture0Height);
+    auto along = [](float p, float p0, float p1, float e0, float e1) { return e0 + (p - p0) / (p1 - p0) * (e1 - e0); };
+    for (DWORD i = 0; i < count; ++i)
+    {
+        const float* p = vertex(i);
+        if (std::fabs(along(p[0], minX, maxX, u[0], u[1]) - p[uv]) * w > 0.05f ||
+            std::fabs(along(p[1], minY, maxY, t[0], t[1]) - p[uv + 1]) * h > 0.05f)
+        {
+            return;
+        }
+    }
     float eu[2] = {u[0] * w, u[1] * w}, ev[2] = {t[0] * h, t[1] * h};
     // Bilinear sampling reads half a texel around the sample position; point sampling only the texel under it.
     const bool linear = uiFilter(m_filters[0][0]) != D3DTFG_POINT || uiFilter(m_filters[0][1]) != D3DTFN_POINT;
     const float margin = linear ? 0.5f : 0.05f;
     fitTexelAxis(minX, maxX, eu[0], eu[1], margin);
     fitTexelAxis(minY, maxY, ev[0], ev[1], margin);
-    for (int i = 0; i < 4; ++i)
+    for (DWORD i = 0; i < count; ++i)
     {
-        v[i][uv] = eu[isNear(v[i][0], minX) ? 0 : 1] / w;
-        v[i][uv + 1] = ev[isNear(v[i][1], minY) ? 0 : 1] / h;
+        float* p = vertex(i);
+        p[uv] = along(p[0], minX, maxX, eu[0], eu[1]) / w;
+        p[uv + 1] = along(p[1], minY, maxY, ev[0], ev[1]) / h;
     }
 }
 
@@ -938,13 +955,13 @@ HRESULT DeviceProxy::DrawPrimitive(D3DPRIMITIVETYPE type, DWORD fvf, LPVOID vert
         {
             return dimmed;
         }
-        if (quad)
+        if (type == D3DPT_TRIANGLESTRIP || type == D3DPT_TRIANGLEFAN || type == D3DPT_TRIANGLELIST)
         {
-            fitTexels(fvf, m_scratch.data());
-            if (UiCanvas::frame().confine)
-            {
-                clipQuad(fvf, m_scratch.data());
-            }
+            fitTexels(fvf, m_scratch.data(), count);
+        }
+        if (quad && UiCanvas::frame().confine)
+        {
+            clipQuad(fvf, m_scratch.data());
         }
         D3DStats::count(CSubmit);
         Scope s{TDraw};

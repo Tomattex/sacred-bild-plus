@@ -8,6 +8,8 @@
   overlays) covers the whole model again, as in the original game, instead of showing in patches.
 - Rain, fog and snow cover the whole screen when the window got its final size after the game started (a resized
   window, Wine).
+- With `[UI] LinearFilter` the overview map (Tab) no longer shows thin lines along the edges of its squares at a
+  scaled UI (e.g. 1080x1080).
 
 ### Sacred Gear
 
