@@ -1,6 +1,7 @@
 #include "game/effects_bar.h"
 #include "config/ui.h"
 #include "game/sacred_addr.h"
+#include "game/ui_draw.h"
 #include "game/ui_anchor.h"
 #include "game/ui_canvas.h"
 #include "game/ui_state.h"
@@ -172,76 +173,6 @@ namespace
         return n;
     }
 
-    // A quad in the UI's layout units, drawn through the device as the UI draws (mapped into the frame): the
-    // texture's uv rect tinted by `color`, or plain `color` without a texture.
-    void quad(IDirect3DDevice7* device, IDirectDrawSurface7* surface, float left, float top, float right, float bottom,
-        const float* uv, uint32_t color)
-    {
-        struct Vertex
-        {
-            float x, y, z, rhw;
-            DWORD color;
-            float u, v;
-        };
-        const float u0 = uv ? uv[0] : 0.0f, v0 = uv ? uv[1] : 0.0f, u1 = uv ? uv[2] : 0.0f, v1 = uv ? uv[3] : 0.0f;
-        const Vertex vertices[4] = {
-            {left, top, 0.0f, 1.0f, color, u0, v0}, {right, top, 0.0f, 1.0f, color, u1, v0},
-            {left, bottom, 0.0f, 1.0f, color, u0, v1}, {right, bottom, 0.0f, 1.0f, color, u1, v1},
-        };
-        struct RenderState
-        {
-            D3DRENDERSTATETYPE state;
-            DWORD value, saved;
-        };
-        RenderState states[] = {
-            {D3DRENDERSTATE_ALPHABLENDENABLE, TRUE}, {D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA},
-            {D3DRENDERSTATE_DESTBLEND, D3DBLEND_INVSRCALPHA}, {D3DRENDERSTATE_ALPHATESTENABLE, FALSE},
-            {D3DRENDERSTATE_ZENABLE, FALSE},
-        };
-        struct StageState
-        {
-            DWORD stage;
-            D3DTEXTURESTAGESTATETYPE type;
-            DWORD value, saved;
-        };
-        const DWORD arg = surface ? D3DTA_TEXTURE : D3DTA_DIFFUSE;
-        const DWORD op = surface ? D3DTOP_MODULATE : D3DTOP_SELECTARG1;
-        StageState stages[] = {
-            {0, D3DTSS_COLOROP, op}, {0, D3DTSS_COLORARG1, arg}, {0, D3DTSS_COLORARG2, D3DTA_DIFFUSE},
-            {0, D3DTSS_ALPHAOP, op}, {0, D3DTSS_ALPHAARG1, arg}, {0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE},
-            {0, D3DTSS_MINFILTER, D3DTFN_LINEAR}, {0, D3DTSS_MAGFILTER, D3DTFG_LINEAR},
-            {0, D3DTSS_ADDRESS, D3DTADDRESS_CLAMP}, {1, D3DTSS_COLOROP, D3DTOP_DISABLE},
-        };
-        IDirectDrawSurface7* texture = nullptr;
-        device->GetTexture(0, &texture);
-        for (RenderState& s : states)
-        {
-            device->GetRenderState(s.state, &s.saved);
-            device->SetRenderState(s.state, s.value);
-        }
-        for (StageState& s : stages)
-        {
-            device->GetTextureStageState(s.stage, s.type, &s.saved);
-            device->SetTextureStageState(s.stage, s.type, s.value);
-        }
-        device->SetTexture(0, surface);
-        device->DrawPrimitive(D3DPT_TRIANGLESTRIP, D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1,
-            const_cast<Vertex*>(vertices), 4, 0);
-        device->SetTexture(0, texture);
-        if (texture)
-        {
-            texture->Release();
-        }
-        for (const StageState& s : stages)
-        {
-            device->SetTextureStageState(s.stage, s.type, s.saved);
-        }
-        for (const RenderState& s : states)
-        {
-            device->SetRenderState(s.state, s.saved);
-        }
-    }
-
     // The group's icon: its UI image (a part of a 256x256 sheet) or its whole texture.
     bool drawIcon(IDirect3DDevice7* device, const Group& g, float x, float y)
     {
@@ -275,7 +206,7 @@ namespace
         {
             return false;
         }
-        quad(device, texture->surface, x, y, x + kIcon, y + kIcon, uv, 0xFFFFFFFF);
+        UiDraw::quad(device, texture->surface, x, y, x + kIcon, y + kIcon, uv, 0xFFFFFFFF);
         return true;
     }
 
@@ -409,10 +340,10 @@ void EffectsBar::draw(cUI_Manager* manager, IDirect3DDevice7* device)
         const Group& g = groups[i];
         const float x = right - kIcon - static_cast<float>(i % kPerRow) * kStep;
         const float y = top + static_cast<float>(i / kPerRow) * rowHeight;
-        quad(device, nullptr, x - 1, y - 1, x + kIcon + 1, y + kIcon + 1, nullptr, kFrameColor);
+        UiDraw::quad(device, nullptr, x - 1, y - 1, x + kIcon + 1, y + kIcon + 1, nullptr, kFrameColor);
         if (!drawIcon(device, g, x, y))
         {
-            quad(device, nullptr, x, y, x + kIcon, y + kIcon, nullptr, kPanelColor);
+            UiDraw::quad(device, nullptr, x, y, x + kIcon, y + kIcon, nullptr, kPanelColor);
         }
         wchar_t time[16];
         if (timeText(g.left, time))
@@ -442,8 +373,8 @@ void EffectsBar::draw(cUI_Manager* manager, IDirect3DDevice7* device)
     const float boxWidth = static_cast<float>(textWidth + 12), boxHeight = static_cast<float>(lineHeight + 8);
     const float bx = std::clamp(hoverX + kIcon / 2.0f - boxWidth / 2.0f, 2.0f, 1022.0f - boxWidth);
     const float by = top + static_cast<float>(rows) * rowHeight + 2.0f;
-    quad(device, nullptr, bx - 1, by - 1, bx + boxWidth + 1, by + boxHeight + 1, nullptr, kFrameColor);
-    quad(device, nullptr, bx, by, bx + boxWidth, by + boxHeight, nullptr, kPanelColor);
+    UiDraw::quad(device, nullptr, bx - 1, by - 1, bx + boxWidth + 1, by + boxHeight + 1, nullptr, kFrameColor);
+    UiDraw::quad(device, nullptr, bx, by, bx + boxWidth, by + boxHeight, nullptr, kPanelColor);
     font->draw(device, UiRect{static_cast<int32_t>(bx) + 6, static_cast<int32_t>(by) + 4, static_cast<int16_t>(textWidth + 8),
         static_cast<int16_t>(lineHeight + 4)}, name.c_str(), kNameColor, 0);
 }

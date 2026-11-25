@@ -3,16 +3,19 @@
 #include <ddraw.h>
 #include <d3d.h>
 
-void UiDraw::fillRect(IDirect3DDevice7* device, float left, float top, float right, float bottom, uint32_t color)
+void UiDraw::quad(IDirect3DDevice7* device, IDirectDrawSurface7* surface, float left, float top, float right, float bottom,
+    const float* uv, uint32_t color)
 {
     struct Vertex
     {
         float x, y, z, rhw;
         DWORD color;
+        float u, v;
     };
-    const Vertex quad[4] = {
-        {left, top, 0.0f, 1.0f, color}, {right, top, 0.0f, 1.0f, color},
-        {left, bottom, 0.0f, 1.0f, color}, {right, bottom, 0.0f, 1.0f, color},
+    const float u0 = uv ? uv[0] : 0.0f, v0 = uv ? uv[1] : 0.0f, u1 = uv ? uv[2] : 0.0f, v1 = uv ? uv[3] : 0.0f;
+    const Vertex vertices[4] = {
+        {left, top, 0.0f, 1.0f, color, u0, v0}, {right, top, 0.0f, 1.0f, color, u1, v0},
+        {left, bottom, 0.0f, 1.0f, color, u0, v1}, {right, bottom, 0.0f, 1.0f, color, u1, v1},
     };
     struct RenderState
     {
@@ -30,10 +33,13 @@ void UiDraw::fillRect(IDirect3DDevice7* device, float left, float top, float rig
         D3DTEXTURESTAGESTATETYPE type;
         DWORD value, saved;
     };
+    const DWORD arg = surface ? D3DTA_TEXTURE : D3DTA_DIFFUSE;
+    const DWORD op = surface ? D3DTOP_MODULATE : D3DTOP_SELECTARG1;
     StageState stages[] = {
-        {0, D3DTSS_COLOROP, D3DTOP_SELECTARG1}, {0, D3DTSS_COLORARG1, D3DTA_DIFFUSE},
-        {0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1}, {0, D3DTSS_ALPHAARG1, D3DTA_DIFFUSE},
-        {1, D3DTSS_COLOROP, D3DTOP_DISABLE},
+        {0, D3DTSS_COLOROP, op}, {0, D3DTSS_COLORARG1, arg}, {0, D3DTSS_COLORARG2, D3DTA_DIFFUSE},
+        {0, D3DTSS_ALPHAOP, op}, {0, D3DTSS_ALPHAARG1, arg}, {0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE},
+        {0, D3DTSS_MINFILTER, D3DTFN_LINEAR}, {0, D3DTSS_MAGFILTER, D3DTFG_LINEAR},
+        {0, D3DTSS_ADDRESS, D3DTADDRESS_CLAMP}, {1, D3DTSS_COLOROP, D3DTOP_DISABLE},
     };
     IDirectDrawSurface7* texture = nullptr;
     device->GetTexture(0, &texture);
@@ -47,8 +53,9 @@ void UiDraw::fillRect(IDirect3DDevice7* device, float left, float top, float rig
         device->GetTextureStageState(s.stage, s.type, &s.saved);
         device->SetTextureStageState(s.stage, s.type, s.value);
     }
-    device->SetTexture(0, nullptr);
-    device->DrawPrimitive(D3DPT_TRIANGLESTRIP, D3DFVF_XYZRHW | D3DFVF_DIFFUSE, const_cast<Vertex*>(quad), 4, 0);
+    device->SetTexture(0, surface);
+    device->DrawPrimitive(D3DPT_TRIANGLESTRIP, D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1,
+        const_cast<Vertex*>(vertices), 4, 0);
     device->SetTexture(0, texture);
     if (texture)
     {
@@ -62,6 +69,11 @@ void UiDraw::fillRect(IDirect3DDevice7* device, float left, float top, float rig
     {
         device->SetRenderState(s.state, s.saved);
     }
+}
+
+void UiDraw::fillRect(IDirect3DDevice7* device, float left, float top, float right, float bottom, uint32_t color)
+{
+    quad(device, nullptr, left, top, right, bottom, nullptr, color);
 }
 
 void UiDraw::panel(IDirect3DDevice7* device, float left, float top, float right, float bottom)
