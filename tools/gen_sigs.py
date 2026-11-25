@@ -100,7 +100,7 @@ SACRED = [
     ('menuWater_update', 0x0075EF40, 'func'),
     ('renderLimiterReturn', 0x0060EA6E, 'code'),
     ('captureLockBackReturn', 0x006136AB, 'code'),
-    ('captureScreenshot', 0x006487D0, 'func'),
+    ('dxDriver7_startCapture', 0x00648660, 'func'),
     # world view
     ('pixelsToWorld', 0x00623940, 'func'),
     ('worldToPixels', 0x00623B60, 'func'),

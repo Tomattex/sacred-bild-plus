@@ -655,8 +655,8 @@ mask and the children's layout moved to the screen's size.
 |---|---|---|
 | `cEngine_captureInternal` (`0x613670`), savegame thumbnail | copies `desc.dwHeight` rows into a 1024x768 buffer: **heap overflow** | `lockBack` hook hands it the centered 1024x768 (return address `0x6136AB`) |
 | `renderSavePortrait` | size-aware (centered region) | projection constants patched; runs outside the UI canvas |
-| `captureScreenshot` (`0x6487D0`) / `writeTga1024x768` (`0x6482C0`) | screenshots of the top-left 1024x768, sheared at 32 bits (`writeTga` `0x6604B0` ignores the pitch), JPEG copy assumes 1024x768 too | mode -1 replaced: whole back buffer as PNG/JPEG through WIC (`src/game/screenshot.*`) |
-| `captureScreenshot` modes >= 0 / < -1 (frame sequence into the mapped file `vidobj`, then `cap%04d.tga`) | 3 MB frames copied without pitch: garbled | unreachable: every `dxDriver7_startCapture` (`0x648660`) caller asks for 1 frame; left as is |
+| `captureScreenshot` (`0x6487D0`) / `writeTga1024x768` (`0x6482C0`) | screenshots of the top-left 1024x768, sheared at 32 bits (`writeTga` `0x6604B0` ignores the pitch), JPEG copy assumes 1024x768 too | not called: `dxDriver7_startCapture` (`0x648660`) with one frame is replaced; the next flip saves the whole back buffer as PNG/JPEG through WIC (`src/game/screenshot.*`) |
+| `captureScreenshot` modes >= 0 / < -1 (frame sequence into the mapped file `vidobj`, then `cap%04d.tga`) | 3 MB frames copied without pitch: garbled | unreachable: every `dxDriver7_startCapture` caller asks for 1 frame; left as is |
 | `debugCaptureCharacter` (`0x6F54D0`) | developer tool, reads fixed offsets inside the surface | ignored |
 
 ## Hard-coded 1024x768 elsewhere
@@ -769,7 +769,9 @@ second; SacredBild makes that `[Net] JoinTimeout`, 30 s by default); loading may
   Ctrl, Alt, `VK_LBUTTON` for hold-to-move in `0x6172C0`, the zoom keys in `cEngine_handleZoomInput`). `WM_KEYDOWN`
   calls `GetKeyboardState` and `ToAscii` / `ToUnicode` and posts a key event (vtable `0x897568`) through
   `0x808E50` / `0x8092F0`; Shift / Ctrl / Alt are tracked in `0x182EE70` from their own key messages; Ctrl+B and
-  Print Screen take screenshots right there. Mouse button messages take the position from `getClientCursorPos`, not
+  Print Screen take screenshots right there (`dxDriver7_startCapture`); the flip that captures sets the flag
+  `0x17E7F50`, which puts the clocks (`0x641520`, render thread and UI thread) in video capture mode: a fixed 1/24 s
+  per frame (frames x frequency / 24 instead of `QueryPerformanceCounter`). Mouse button messages take the position from `getClientCursorPos`, not
   from lParam. Keys are fixed (Quickstart.pdf): Esc, Tab, I, F, C, L, M, O, S, H, N, P, A (collect all), F8 / F9,
   numpad +/-, Space Q W E R (potions), B (heal hirelings), 1-5 weapon slots, 6-0 select the active combat art (the
   right mouse button uses it), Ctrl+click attacks in place, Shift+click on the ground walks.

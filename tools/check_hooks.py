@@ -24,7 +24,7 @@ HOOKS = {
     0x004B1450: ('renderSavePortrait', 4),
     0x006A0EA0: ('playVideo', 5),
     0x006A0D80: ('openMovieStream (cdecl)', 0),
-    0x006487D0: ('captureScreenshot (cdecl)', 0),
+    0x00648660: ('dxDriver7::startCapture', 1),
     0x0060E350: ('cEngine::renderThreadRun (fastcall)', 0),
     0x0060A9F0: ('frameLimiter (cdecl)', 0),
     0x0075EF40: ('menuWater::update', 1),

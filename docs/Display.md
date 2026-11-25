@@ -66,8 +66,9 @@ main window that SacredBild already subclasses.
 
 ## Screenshots
 
-Print Screen saves the whole screen as `Capture\shotNNNN.png` (or `.jpg`, `[Screenshot] Format`), on a worker
-thread; the game's own wrote the top-left 1024x768 as TGA + JPEG, sheared at other widths.
+Print Screen and Ctrl+B save the whole screen as `Capture\shotNNNN.png` (or `.jpg`, `[Screenshot] Format`), on a
+worker thread; the game's own wrote the top-left 1024x768 as TGA + JPEG, sheared at other widths, and switched its
+clocks to its video capture mode for that frame, which made the game time jump.
 
 ## Input only in the foreground
 

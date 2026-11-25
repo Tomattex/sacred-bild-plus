@@ -148,13 +148,12 @@ namespace Sacred::Addr
     // popped (00655180); this is that renderCursor call's return address. The plain cursor is drawn by another call.
     inline uintptr_t worldCursorSpecialRenderReturn{};  // ENG 00612E6F
     inline uintptr_t captureLockBackReturn{};           // ENG 006136AB; after captureInternal's call to lockBack
-    // Screenshots: dxDriver7_startCapture (ENG 00648660, thiscall (frames)) sets dxDriver7::captureFramesLeft; every
-    // caller (Print Screen, the game's screenshot key, a debug key) asks for one frame. While it is set,
-    // dxDriver7_flip locks the back buffer and calls captureScreenshot: mode -1 = one screenshot,
-    // written by writeTga1024x768 (ENG 006482C0) as .\Capture\shotNNNN.tga, which a thread (ENG 00648430) converts to a
-    // quality 50 JPEG through IJL. Both assume 1024x768 (the 32-bit path ignores the pitch). Modes >= 0 copy 3 MB
-    // frames into a mapped file ("vidobj"), < -1 write them out as cap%04d.tga: only reached with more than one frame.
-    inline Cdecl<void(void* bits, int pitch, int mode)> captureScreenshot{}; // ENG 006487D0
+    // Screenshots: dxDriver7_startCapture (thiscall (frames)) sets dxDriver7::captureFramesLeft; every caller (Print
+    // Screen, Ctrl+B, a debug key) asks for one frame. The next dxDriver7_flip locks the back buffer and calls
+    // captureScreenshot (ENG 006487D0): the top-left 1024x768 as .\Capture\shotNNNN.tga plus a JPEG, sheared at other
+    // widths. During that flip the game's clocks (ENG 00641520) run in its video capture mode, a fixed 1/24 s per frame
+    // instead of the real time, so a clock that ticked on another thread meanwhile made the game time jump.
+    inline Thiscall<void(dxDriver7* self, int frames)> dxDriver7_startCapture{}; // ENG 00648660
 
     // World <-> pixel conversion (cdecl (out, point, rotation, projection) -> out). Pixels assume a projection
     // spanning 1024x768 pixels: true for g_unzoomedProjection, not for the device projection (W x H).

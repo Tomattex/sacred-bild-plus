@@ -14,3 +14,5 @@
   chosen resolution (exclusive), `Windowed` is a window with a title bar. The old `Borderless` key is ignored.
 - The water in the main menu and the character selection moves at the same speed at any frame rate (it sped up
   with the frame limit).
+- A screenshot (Print Screen, Ctrl+B) no longer makes the animations and effects jump: the game switched its clocks
+  to its video capture mode for the captured frame.

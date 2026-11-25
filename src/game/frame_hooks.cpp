@@ -9,6 +9,7 @@
 #include "game/granny_parallel.h"
 #include "game/resolution.h"
 #include "game/sacred_addr.h"
+#include "game/screenshot.h"
 #include "game/ui_canvas.h"
 #include "game/ui_state.h"
 #include "game/ui_windows.h"
@@ -229,6 +230,7 @@ namespace
         t_limiterCalled = false;
         D3DStats::mark(D3DStats::TimerCount);
         Resolution::beforeFlip(self);
+        Screenshot::beforeFlip(self);
         int hr;
         {
             D3DStats::Scope s{D3DStats::TFlip};

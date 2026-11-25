@@ -23,7 +23,7 @@ namespace Sacred
         int32_t bpp;
         uint8_t _98[0xA8 - 0x98];
         // Screenshots: startCapture (ENG 00648660, thiscall (frames)) sets these; while framesLeft is set, flip locks
-        // the back buffer and calls Addr::captureScreenshot.
+        // the back buffer and calls the game's captureScreenshot (see Addr::dxDriver7_startCapture).
         int32_t captureFramesLeft;
         int32_t captureFramesTaken;
         uint8_t _b0[0xB4 - 0xB0];
