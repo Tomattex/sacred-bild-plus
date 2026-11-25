@@ -7,6 +7,9 @@
 - The multiplayer menu shows the lobby server for Closed and Open Internet and switches between servers (arrows, or a
   list to pick, add `host[:port]` and remove); the list is kept in `SacredBild-lobbies.txt`, first filled from
   `Settings.cfg` and a `servers.json` in the game folder, and the game saves the choice in `Settings.cfg`.
+- In game, a row of icons left of the hero's portrait shows the effects on the hero: combat arts and spells (also a
+  party member's or a monster's) and poison, each with the game's icon and the time it has left; the cursor over an
+  icon shows its name. It moves aside when a window opens there; `[UI] EffectsBar=0` turns it off.
 - The settings window before the game starts looks like the game's menus: dark stone, the page names in a column in
   the game's uncial (the shown one over the portal's red glow), the page in a steel frame, buttons as plaques with
   glowing orbs, under the Sacred Gold logo. Logo and typefaces come from the game's own files (`readme\Gold.jpg`,

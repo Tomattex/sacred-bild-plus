@@ -28,6 +28,7 @@ namespace Sacred
     struct cTextTable;
     struct cTexture;
     struct cTextureManager;
+    struct cTextureNames;
     struct cUI_Book;
     struct cUI_Control2;
     struct cUI_EditControl;
@@ -364,4 +365,19 @@ namespace Sacred::Addr
     inline Thiscall<void(cEngine* self, cCreature* creature, cOrder* order)> cEngine_sendOrder{}; // ENG 00617030
     inline uintptr_t cOrder_vtable{};                   // ENG 0089095C
     inline Global<uint8_t> g_worldInputFlags{};         // ENG 00AB73DC
+
+    // The effects bar (effects_bar.cpp). The ability records: combat arts (ids from 1000, 0x78 bytes) and spells (ids
+    // from 1, 0x94 bytes), both {int16 id, uint32 name text at +4, the three UI images of the icon at +0x30..+0x38},
+    // from their lookup functions' loops (first record, end).
+    inline Global<uint8_t> abilityArts{};               // ENG 0094FE28
+    inline Global<uint8_t> abilityArtsEnd{};            // ENG 00952A38
+    inline Global<uint8_t> abilitySpells{};             // ENG 00952ACC
+    inline Global<uint8_t> abilitySpellsEnd{};          // ENG 00955344
+    // The UI images: 0x54-byte records (+0x28 texture handle, +0x2C..+0x38 u0 v0 u1 v1, +0x4C / +0x50 width / height);
+    // this is the first record's texture handle (the table starts 0x28 before it).
+    inline Global<uint32_t> uiImageTextures{};          // ENG 009ECED8
+    // The texture names (made on first use, then kept): find is thiscall (const char* name) -> the texture manager's
+    // handle of the texture of PAK/Texture.pak with that name, 0 if there is none.
+    inline Global<cTextureNames*> g_pTextureNames{};    // ENG 013E7834
+    inline Thiscall<uint32_t(cTextureNames* self, const char* name)> cTextureNames_find{}; // ENG 00657360
 }

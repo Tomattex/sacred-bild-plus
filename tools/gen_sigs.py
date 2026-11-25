@@ -191,6 +191,14 @@ SACRED = [
     ('cEngine_sendOrder', 0x00617030, 'func'),
     ('cOrder_vtable', 0x0089095C, 'data'),
     ('g_worldInputFlags', 0x00AB73DC, 'data'),
+    # effects bar: the ability records, the UI images and the texture names
+    ('abilityArts', 0x0094FE28, 'data'),
+    ('abilityArtsEnd', 0x00952A38, 'data'),
+    ('abilitySpells', 0x00952ACC, 'data'),
+    ('abilitySpellsEnd', 0x00955344, 'data'),
+    ('uiImageTextures', 0x009ECED8, 'data'),
+    ('g_pTextureNames', 0x013E7834, 'data'),
+    ('cTextureNames_find', 0x00657360, 'func'),
 ]
 
 # gameserver.exe (the same addresses in both builds) has no function table here: each entry gives the instruction

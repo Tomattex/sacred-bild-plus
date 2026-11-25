@@ -215,6 +215,13 @@ static const Sig::Entry kAddressSigs[] = {
     {"cEngine_sendOrder", "83 EC 28 53 55 8B 6C 24 34 57 8B 7C 24 3C", 0, Sig::Take::Match, &Sacred::Addr::cEngine_sendOrder}, // 00617030, 006170D0, 006170D0
     {"cOrder_vtable", "C7 44 24 18 ?? ?? ?? ?? 89 7C 24 2C 89 7C 24 30", 4, Sig::Take::Abs32, &Sacred::Addr::cOrder_vtable}, // 0089095C, 0088E95C, 0088E95C
     {"g_worldInputFlags", "8B 0D ?? ?? ?? ?? C1 E9 03 80 E1 01 80 C9 06 51", 2, Sig::Take::Abs32, &Sacred::Addr::g_worldInputFlags}, // 00AB73DC, 00AB535C, 00AB535C
+    {"abilityArts", "B8 ?? ?? ?? ?? 66 39 10 74 0E 83 C0 78 41 3D ?? ?? ?? ?? 72 F0", 1, Sig::Take::Abs32, &Sacred::Addr::abilityArts}, // 0094FE28
+    {"abilityArtsEnd", "3D ?? ?? ?? ?? 72 F0 33 C0 C3 8D 04 49 8D 04 80", 1, Sig::Take::Abs32, &Sacred::Addr::abilityArtsEnd}, // 00952A38
+    {"abilitySpells", "B8 ?? ?? ?? ?? 66 39 10 74 10 05 94 00 00 00 41", 1, Sig::Take::Abs32, &Sacred::Addr::abilitySpells}, // 00952ACC
+    {"abilitySpellsEnd", "3D ?? ?? ?? ?? 72 EE 33 C0 C3 8D 04 C9 8D 0C 81", 1, Sig::Take::Abs32, &Sacred::Addr::abilitySpellsEnd}, // 00955344
+    {"uiImageTextures", "8B 04 95 ?? ?? ?? ?? 89 86 4C 02 00 00 B8 00 01 00 00", 3, Sig::Take::Abs32, &Sacred::Addr::uiImageTextures}, // 009ECED8
+    {"g_pTextureNames", "51 A1 ?? ?? ?? ?? 85 C0 75 ?? 68 B4 14 00 00", 2, Sig::Take::Abs32, &Sacred::Addr::g_pTextureNames}, // 013E7834
+    {"cTextureNames_find", "C1 E0 04 03 C2 C2 04 00 33 C0 C2 04 00 90 90 90 8B 44 24 04 56 8D B1 94 00 00 00 50 8B CE E8", 16, Sig::Take::Match, &Sacred::Addr::cTextureNames_find}, // 00657360
 };
 // Entries that builds may lack (counted apart from kAddressSigs).
 static const Sig::Entry kOptionalAddressSigs[] = {

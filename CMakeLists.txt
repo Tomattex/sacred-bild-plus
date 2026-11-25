@@ -105,6 +105,7 @@ set(DDRAW_SOURCES
   src/game/ui_windows.cpp
   src/game/movie.cpp
   src/game/d3d_stats.cpp
+  src/game/effects_bar.cpp
   src/game/device_proxy.cpp
   src/game/resolution.cpp
   src/game/screenshot.cpp

@@ -300,6 +300,10 @@ namespace
 
         ui.column();
         ui.group(L"HUD layout");
+        ui.check(L"Show the effects on the hero beside the portrait", {L"UI", L"EffectsBar"}, Config::ui.effectsBar)
+            .tip(L"In game, a row of the game's icons left of the hero's portrait: the combat arts and spells working on "
+                 L"the hero (its own, the party's, monsters' curses) and poison, each with the time it has left. The "
+                 L"cursor over an icon shows its name.");
         ui.check(L"Place the HUD windows at the screen edges", {L"UI", L"Anchor"}, Config::ui.anchor)
             .tip(L"In game, place the taskbar, minimap, inventory and the other HUD windows at the screen edges, at the "
                  L"positions below. Off: the whole interface stays in the centered 1024 x 768 area.");
