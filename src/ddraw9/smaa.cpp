@@ -47,7 +47,6 @@ namespace DDraw9
             d9::IDirect3DPixelShader9* weightPS[kPresets] = {};
             d9::IDirect3DTexture9* area = nullptr;
             d9::IDirect3DTexture9* search = nullptr;
-            d9::IDirect3DStateBlock9* saved = nullptr;
 
             // Per render target size and format.
             UINT width = 0, height = 0;
@@ -80,7 +79,6 @@ namespace DDraw9
                 }
                 release(area);
                 release(search);
-                release(saved);
                 device = nullptr;
                 ready = 0;
             }
@@ -183,10 +181,6 @@ namespace DDraw9
             if (SUCCEEDED(hr))
             {
                 hr = fill(g.search, searchTexBytes, SEARCHTEX_PITCH, SEARCHTEX_HEIGHT);
-            }
-            if (SUCCEEDED(hr))
-            {
-                hr = dev->CreateStateBlock(d9::D3DSBT_ALL, &g.saved);
             }
             if (FAILED(hr))
             {
@@ -312,13 +306,11 @@ namespace DDraw9
             return false;
         }
 
-        // Everything the passes change comes back from the state block; the render target and depth buffer it
-        // doesn't hold are put back by hand.
+        // A pure device (Gpu tries one first) neither reads nor reliably captures its state, so none is saved: the
+        // Direct3D 7 device sets all it knows again afterwards (Gpu::overlayDrew), and of the states it doesn't know
+        // the passes leave only the sRGB ones changed, set back below.
         d9::IDirect3DSurface9* depth = nullptr;
         dev->GetDepthStencilSurface(&depth);
-        d9::D3DVIEWPORT9 viewport = {};
-        dev->GetViewport(&viewport);
-        g.saved->Capture();
         const bool scene = SUCCEEDED(dev->BeginScene());     // fails inside the game's own scene: draw in that one
 
         dev->SetDepthStencilSurface(nullptr);
@@ -370,11 +362,11 @@ namespace DDraw9
         {
             dev->EndScene();
         }
-        g.saved->Apply();
+        // Left on, every later draw (the UI, the next frames, the menus) was written as sRGB: all of it too bright.
+        dev->SetRenderState(d9::D3DRS_SRGBWRITEENABLE, FALSE);
+        dev->SetSamplerState(0, d9::D3DSAMP_SRGBTEXTURE, FALSE);
         dev->SetRenderTarget(0, frame);
         dev->SetDepthStencilSurface(depth);
-        dev->SetViewport(&viewport);
-        // The Direct3D 7 device sets what it believes is set again (shaders, bindings, sampler states).
         Gpu::overlayDrew();
         frame->Release();
         if (depth)
