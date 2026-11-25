@@ -10,6 +10,10 @@
   window, Wine).
 - With `[UI] LinearFilter` the overview map (Tab) no longer shows thin lines along the edges of its squares at a
   scaled UI (e.g. 1080x1080).
+- Sound effects no longer drop out with many monsters around: the game has 22 voices for them and threw a new
+  effect away when all were busy (in a big fight up to half of them in a second); it now takes the voice that ends
+  soonest.
+  Looping sounds keep theirs.
 
 ### Sacred Gear
 

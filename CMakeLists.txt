@@ -82,6 +82,7 @@ set(DDRAW_SOURCES
   src/game/language.cpp
   src/game/map_cache.cpp
   src/game/sound_lock.cpp
+  src/game/sound_voices.cpp
   src/game/fast_math.cpp
   src/game/file_io_stats.cpp
   src/game/file_cache.cpp
