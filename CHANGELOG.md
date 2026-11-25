@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### SacredBild
+
+- With `[Render] GpuSkinning` the sheen of buffs and spells on characters (stone skin, light shield and the other
+  overlays) covers the whole model again, as in the original game, instead of showing in patches.
+
 ## 0.3.0
 
 ### SacredBild

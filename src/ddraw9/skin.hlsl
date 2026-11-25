@@ -35,6 +35,10 @@ bool g_normalizeNormals : register(b1);     // D3DRENDERSTATE_NORMALIZENORMALS
 bool g_localViewer : register(b2);          // D3DRENDERSTATE_LOCALVIEWER
 bool g_specular : register(b3);             // D3DRENDERSTATE_SPECULARENABLE
 bool g_lighting : register(b4);             // D3DRENDERSTATE_LIGHTING
+// Stage 0 / 1 reads the skinned normal's x and y instead of the mesh's coordinates: the game's set 1 of FVF 0x252, whose
+// multiTex overlays look a texture up by the deformed normals.
+bool g_normalCoords0 : register(b5);
+bool g_normalCoords1 : register(b6);
 
 struct VsIn
 {
@@ -152,8 +156,18 @@ VsOut main(VsIn v)
     o.position = float4(dot(pc4, g_projection[0]), dot(pc4, g_projection[1]), dot(pc4, g_projection[2]),
         dot(pc4, g_projection[3]));
     const float3 uv = float3(v.uv, 1.0);
-    o.uv0 = float2(dot(uv, g_texTransform[0].xyz), dot(uv, g_texTransform[1].xyz));
-    o.uv1 = float2(dot(uv, g_texTransform[2].xyz), dot(uv, g_texTransform[3].xyz));
+    float3 uv0 = uv;
+    float3 uv1 = uv;
+    if (g_normalCoords0)
+    {
+        uv0 = float3(n.xy, 1.0);
+    }
+    if (g_normalCoords1)
+    {
+        uv1 = float3(n.xy, 1.0);
+    }
+    o.uv0 = float2(dot(uv0, g_texTransform[0].xyz), dot(uv0, g_texTransform[1].xyz));
+    o.uv1 = float2(dot(uv1, g_texTransform[2].xyz), dot(uv1, g_texTransform[3].xyz));
     o.uv2 = v.uv;
     o.uv3 = v.uv;
 

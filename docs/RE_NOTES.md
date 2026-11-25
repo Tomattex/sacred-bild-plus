@@ -356,10 +356,13 @@ AMD user-mode driver 12 %, DDrawCompat 10 %, ntdll 9 %, msvcrt 6 % (memcpy), d3d
   offset in `_31`/`_32`), stage 1 the mesh's own texture for alpha, both on coordinate set 0); item types with flag
   `0x100000` (glow type at `+0x6E`, texture handle at `+0x66` of the 0x80-byte type record) go through
   `cGranny::renderComplex` (`0x406510`: FVF `0x152` with a stride-0 color, then `0x112` additive, both with the
-  texture matrix); in the character view (`0x6F54D0`) `0x40C320` uses the deformed normals as coordinate set 1
-  (FVF `0x252`). With `GpuSkinning` the skinning shader applies stage 0/1 texture matrices itself, so these passes
-  are drawn by the same shader as the model; drawn from CPU-skinned vertices they missed its depth and showed only
-  in a few spots. `0x401920` calls `GrannyAdvanceTime` per model
+  texture matrix). The spell overlays on a creature (Gear's `gear.buffs.set_overlay` numbers) are passes of
+  `cObject3D_drawModel` too: `0x40CA20` / `0x40BFD0` draw FVF `0x102` (no normals, no color, lighting off), `0x40C320`
+  FVF `0x252` with the deformed normals as coordinate set 1 (stage 1 `MODULATE2X` of `fx_multiTexBase02/03/06.tga` by
+  them; overlay 12; also the character view `0x6F54D0`). With `GpuSkinning` the skinning shader applies stage 0/1
+  texture matrices and the normals as set 1 itself, so these passes are drawn by the same shader as the model; drawn
+  from CPU-skinned vertices they missed its depth and showed only in a few spots. `0x401920` calls `GrannyAdvanceTime`
+  per model
   instance (~10 % of the thread); the skinning inside the lock calls is about as much. Granny is 1.x (2002 API:
   `GrannyLockSequenceForRendering`, `...RenderingState`).
 - `GetTransform` through d3dim700/DDrawCompat/driver cost ~5 %: SacredBild answers it from the last

@@ -237,7 +237,7 @@ namespace DDraw9
         // Constants as last uploaded, to skip repeats.
         float m_skinConstants[73][4] = {};
         UINT m_skinConstantCount = 0;
-        BOOL m_skinFlags[5] = {};
+        BOOL m_skinFlags[7] = {};
         float m_skinTexTransform[4][4] = {};    // c252-c255 as last uploaded
         bool m_skinTexTransformSet = false;
         int m_skinLightCount = -1;
