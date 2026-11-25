@@ -29,6 +29,10 @@ HOOKS = {
     0x00737AC0: ('cUI_EditControl::receiveEvent', 1),
     0x007382F0: ('cUI_EditControl::render', 1),
     0x00649CB0: ('cFontManager::get (called)', 1),
+    # lobby_select.cpp: hooks, and the call-site redirect target (the replacement takes no stack arguments)
+    0x007D8560: ('cNet::openScreen', 1),
+    0x007EDEA0: ('cNet::loadSettings', 0),
+    0x0081E400: ('cOptions::lobbyPort (called)', 0),
     0x0060E350: ('cEngine::renderThreadRun (fastcall)', 0),
     0x0060A9F0: ('frameLimiter (cdecl)', 0),
     0x0075EF40: ('menuWater::update', 1),

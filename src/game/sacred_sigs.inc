@@ -207,6 +207,10 @@ static const Sig::Entry kAddressSigs[] = {
     {"g_characterSlotLocked", "0F BE C3 8A 88 ?? ?? ?? ?? 84 C9 75 0B 6A 01 8B CE", 5, Sig::Take::Abs32, &Sacred::Addr::g_characterSlotLocked}, // 017EA3D0, 017E8350, 017E8350
     {"cUI_NetworkInfo_cellRect", "83 EC 0C 8D 44 24 00 56 8B F1 50 E8 ?? ?? ?? ?? 8B B6 54 01 00 00", 0, Sig::Take::Match, &Sacred::Addr::cUI_NetworkInfo_cellRect}, // 006F7130, 006F6DF0, 006F6DF0
     {"g_pNetPlayers", "A1 ?? ?? ?? ?? 55 3B C3 56 75 47 68 D0 3A 00 00", 1, Sig::Take::Abs32, &Sacred::Addr::g_pNetPlayers}, // 0182EBE8, 0182CB68, 0182CB68
+    {"cNet_openScreen", "64 A1 00 00 00 00 6A FF 68 ?? ?? ?? ?? 50 64 89 25 00 00 00 00 56 57 8B F1", 0, Sig::Take::Match, &Sacred::Addr::cNet_openScreen}, // 007D8560, 007D7D00
+    {"cNet_loadSettings", "6A FF 68 ?? ?? ?? ?? 64 A1 00 00 00 00 50 64 89 25 00 00 00 00 83 EC 54 53 55 56 57 8B F1", 0, Sig::Take::Match, &Sacred::Addr::cNet_loadSettings}, // 007EDEA0, 007ED430
+    {"lobbyPortCall", "8B 11 FF 52 4C B9 ?? ?? ?? ?? E8 ?? ?? ?? ?? 8B 4E 40 6A 01", 10, Sig::Take::Match, &Sacred::Addr::lobbyPortCall}, // 007CCD28, 007CC548
+    {"cString_assign", "8B 44 24 04 53 55 56 57 8B F9 8B 4C 24 18", 0, Sig::Take::Match, &Sacred::Addr::cString_assign}, // 00415BD0, 00415BE0
     {"cNetPlayers_count", "8B 15 ?? ?? ?? ?? 33 C0 85 D2 53 74 21 8A 5A 2B", 0, Sig::Take::Match, &Sacred::Addr::cNetPlayers_count}, // 007DB2C0, 007DA890, 007DA890
     {"cEngine_sendOrder", "83 EC 28 53 55 8B 6C 24 34 57 8B 7C 24 3C", 0, Sig::Take::Match, &Sacred::Addr::cEngine_sendOrder}, // 00617030, 006170D0, 006170D0
     {"cOrder_vtable", "C7 44 24 18 ?? ?? ?? ?? 89 7C 24 2C 89 7C 24 30", 4, Sig::Take::Abs32, &Sacred::Addr::cOrder_vtable}, // 0089095C, 0088E95C, 0088E95C

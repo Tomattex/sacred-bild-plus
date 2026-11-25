@@ -344,6 +344,18 @@ namespace Sacred::Addr
     // The players of a network game (sacred/net.h).
     inline Global<cNetPlayers*> g_pNetPlayers{};        // ENG 0182EBE8
     inline Thiscall<uint32_t(cNetPlayers* self)> cNetPlayers_count{}; // ENG 007DB2C0
+    // The lobby server (lobby_select.cpp, as Sacred Gear's realms). The network object (g_pNetPlayers) keeps the lobby
+    // fields: +0x38 an IP override (0 = none), +0x3C the port, +0x39E4 the host (a string: begin, end, capacity). The
+    // network menu runs cNet_openScreen (thiscall (net, flag 1 = an Internet screen)) when a network screen opens: it
+    // reads the options (NETWORK_LOBBY, NETWORK_LOBBYPORT; the options object ENG 0182EE78) into the object with
+    // cNet_loadSettings and then makes the lobby connection, which reads the port from the options again at
+    // lobbyPortCall (`mov ecx, 0182EE78; call 0081E400`). The object writes its fields back into the options at login
+    // and registration (ENG 007EE780). cString_assign: the string's assign (thiscall (string*, first, last,
+    // allocator*)), as the game copies NETWORK_LOBBY in.
+    inline Thiscall<void(void* net, uint32_t flag)> cNet_openScreen{}; // ENG 007D8560
+    inline Thiscall<void(void* net)> cNet_loadSettings{};       // ENG 007EDEA0
+    inline uintptr_t lobbyPortCall{};                   // ENG 007CCD28
+    inline Thiscall<void*(void* string, const char* first, const char* last, void* allocator)> cString_assign{}; // ENG 00415BD0
 
     // Move orders, as the world mouse handler (0x6172C0) and its hold-to-walk (0x60F130) give them: sendOrder is
     // thiscall on the cEngine (cCreature*, cOrder*), callee pops; it snaps a walk target to a walkable cell
