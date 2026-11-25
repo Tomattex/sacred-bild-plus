@@ -546,6 +546,54 @@ namespace
         }
     };
 
+    // The game's own typefaces for the window, added for this process only while it shows: the uncial of its menus
+    // (font\CAROLING.TTF, "Carolingia") and its Antiqua (font\ANTQS__.TTF or AntiquaSSK.TTF, "AntiquaSSK"). Where
+    // the install has neither, Palatino Linotype. No font ships with SacredBild.
+    class GameFonts
+    {
+    public:
+        explicit GameFonts(const std::wstring& gameDir)
+        {
+            display = add(gameDir, {L"CAROLING.TTF"}) ? L"Carolingia" : kFallback;
+            body = add(gameDir, {L"ANTQS__.TTF", L"AntiquaSSK.TTF"}) ? L"AntiquaSSK" : kFallback;
+        }
+
+        ~GameFonts()
+        {
+            for (const std::wstring& path : m_added)
+            {
+                RemoveFontResourceExW(path.c_str(), FR_PRIVATE, nullptr);
+            }
+        }
+
+        GameFonts(const GameFonts&) = delete;
+        GameFonts& operator=(const GameFonts&) = delete;
+
+        std::wstring display, body;
+
+    private:
+        static constexpr const wchar_t* kFallback = L"Palatino Linotype";
+
+        // The first of the files the install has.
+        bool add(const std::wstring& gameDir, std::initializer_list<const wchar_t*> files)
+        {
+            for (const wchar_t* file : files)
+            {
+                const std::wstring path = gameDir + L"\\font\\" + file;
+                if (GetFileAttributesW(path.c_str()) != INVALID_FILE_ATTRIBUTES &&
+                    AddFontResourceExW(path.c_str(), FR_PRIVATE, nullptr) > 0)
+                {
+                    m_added.push_back(path);
+                    return true;
+                }
+            }
+            LOG("Settings window: no font\\{} in the game folder, Palatino Linotype instead", ascii(*files.begin()));
+            return false;
+        }
+
+        std::vector<std::wstring> m_added;
+    };
+
     // Writes the changed settings to the ini; true if any were written.
     bool save(const std::vector<Ui::Change>& changes, const std::wstring& ini)
     {
@@ -582,12 +630,14 @@ bool SettingsWindow::wanted()
 bool SettingsWindow::show(HMODULE module, const std::wstring& gameDir)
 {
     const std::wstring ini = gameDir + L"\\SacredBild.ini";
+    const GameFonts fonts(gameDir);
     Form form;
+    form.typefaces(fonts.display, fonts.body);
     declare(form, ini);
     const ExeIcons icons;
     form.icons(icons.big, icons.small);
-    Ui::Banner banner(gameDir, L"SacredBild+ " SB_VER_STR);
-    form.banner(54, [&](HDC dc, const RECT& rect) { banner.paint(dc, rect); });
+    Ui::Banner banner(gameDir, L"SacredBild+ " SB_VER_STR, fonts.display);
+    form.banner(58, [&](HDC dc, const RECT& rect) { banner.paint(dc, rect); });
     switch (form.run(module, L"SacredBild settings"))
     {
     case Form::Result::Failed:

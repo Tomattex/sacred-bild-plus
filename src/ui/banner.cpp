@@ -18,11 +18,10 @@ namespace
     constexpr GUID kWicPixelFormat32bppBGRA = {0x6fddc324, 0x4e03, 0x4bfe, {0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x0f}};
     constexpr GUID kWicPixelFormat32bppPBGRA = {0x6fddc324, 0x4e03, 0x4bfe, {0xb1, 0x85, 0x3d, 0x77, 0x76, 0x8d, 0xc9, 0x10}};
 
-    constexpr const wchar_t* kSerif = L"Palatino Linotype";
-    constexpr COLORREF kGold = RGB(214, 176, 104);
-    constexpr COLORREF kCaption = RGB(168, 140, 94);
-    constexpr uint32_t kLeather = 0x221B15;     // the texture's middle tone, 0xRRGGBB
-    constexpr uint32_t kEdge = 0x68503A;        // the line along the bottom
+    constexpr COLORREF kGold = RGB(230, 190, 90);
+    constexpr COLORREF kCaption = RGB(170, 142, 84);
+    constexpr uint32_t kDark = 0x0D0C0B;        // around the glow, 0xRRGGBB
+    constexpr uint32_t kGlow = 0x7A0E0E;        // the portal's red at the glow's heart
 
     ComPtr<IWICImagingFactory> wic()
     {
@@ -212,44 +211,38 @@ namespace
         return static_cast<float>(hash(static_cast<uint32_t>(x) * 73856093u ^ static_cast<uint32_t>(y) * 19349663u) & 0xFFFF) / 65535.0f;
     }
 
-    // Dark leather: a soft mottle a fifth of the height across, a fine grain, darker towards the edges.
-    void leather(uint32_t* out, int width, int height)
+    // The main menu's portal: near black with a deep red glow rising from below the middle, a faint grain.
+    void portal(uint32_t* out, int width, int height)
     {
-        const float cell = std::max(height / 5.0f, 4.0f);
+        const float cx = width / 2.0f, cy = height * 0.7f, rx = width * 0.42f, ry = height * 1.1f;
         for (int y = 0; y < height; ++y)
         {
             for (int x = 0; x < width; ++x)
             {
-                const float fx = x / cell, fy = y / cell;
-                const int ix = static_cast<int>(fx), iy = static_cast<int>(fy);
-                const float tx = fx - ix, ty = fy - iy;
-                const float sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty);
-                const float top = noise(ix, iy) + (noise(ix + 1, iy) - noise(ix, iy)) * sx;
-                const float bottom = noise(ix, iy + 1) + (noise(ix + 1, iy + 1) - noise(ix, iy + 1)) * sx;
-                const float mottle = top + (bottom - top) * sy;
-                const float dx = (x - width / 2.0f) / (width / 2.0f), dy = (y - height / 2.0f) / (height / 2.0f);
-                const float vignette = std::clamp(1.12f - 0.5f * std::sqrt(dx * dx + dy * dy), 0.3f, 1.0f);
-                const float light = (0.86f + 0.28f * mottle) * vignette;
-                const float grain = (noise(x + 7919, y) - 0.5f) * 7.0f;
+                const float dx = (x + 0.5f - cx) / rx, dy = (y + 0.5f - cy) / ry;
+                const float d = std::max(1.0f - std::sqrt(dx * dx + dy * dy), 0.0f);
+                const float glow = d * d * (3 - 2 * d) * 0.9f;
+                const float grain = (noise(x, y) - 0.5f) * 5.0f;
                 uint32_t pixel = 0xFF000000;
                 for (int shift : {16, 8, 0})
                 {
-                    const float c = ((kLeather >> shift) & 0xFF) * light + grain;
-                    pixel |= static_cast<uint32_t>(std::clamp(c, 0.0f, 255.0f)) << shift;
+                    const float dark = static_cast<float>((kDark >> shift) & 0xFF), red = static_cast<float>((kGlow >> shift) & 0xFF);
+                    pixel |= static_cast<uint32_t>(std::clamp(dark + (red - dark) * glow + grain, 0.0f, 255.0f)) << shift;
                 }
                 out[size_t(y) * width + x] = pixel;
             }
         }
     }
 
-    HFONT serif(int height, int weight, bool italic)
+    HFONT font(const std::wstring& face, int height)
     {
-        return CreateFontW(-height, 0, 0, 0, weight, italic, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS,
-            CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, kSerif);
+        return CreateFontW(-height, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS,
+            CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, face.c_str());
     }
 }
 
-Ui::Banner::Banner(const std::wstring& gameDir, std::wstring caption) : m_caption(std::move(caption))
+Ui::Banner::Banner(const std::wstring& gameDir, std::wstring caption, std::wstring face)
+    : m_caption(std::move(caption)), m_face(std::move(face))
 {
     const HRESULT com = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     m_logo = load(gameDir + L"\\readme\\Gold.jpg", m_logoWidth, m_logoHeight);
@@ -294,7 +287,7 @@ void Ui::Banner::render(HDC dc, int width, int height)
     m_width = width;
     m_height = height;
     auto* out = static_cast<uint32_t*>(bits);
-    leather(out, width, height);
+    portal(out, width, height);
 
     // The logo, 80 % of the height, centered.
     bool logo = false;
@@ -330,10 +323,6 @@ void Ui::Banner::render(HDC dc, int width, int height)
         }
         logo = !scaled.empty();
     }
-    for (int x = 0; x < width; ++x)
-    {
-        out[size_t(height - 1) * width + x] = 0xFF000000 | kEdge;
-    }
 
     HDC mem = CreateCompatibleDC(dc);
     const HGDIOBJ oldBitmap = SelectObject(mem, m_bitmap);
@@ -341,21 +330,21 @@ void Ui::Banner::render(HDC dc, int width, int height)
     if (!logo)
     {
         // The title where the logo is missing, with a shadow.
-        HFONT title = serif(height * 40 / 100, FW_BOLD, false);
+        HFONT title = font(m_face, height * 48 / 100);
         const HGDIOBJ oldFont = SelectObject(mem, title);
         RECT r = {0, 0, width, height - height / 10};
         OffsetRect(&r, 2, 2);
         SetTextColor(mem, RGB(8, 6, 4));
-        DrawTextW(mem, L"SACRED GOLD", -1, &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+        DrawTextW(mem, L"Sacred Gold", -1, &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
         OffsetRect(&r, -2, -2);
         SetTextColor(mem, kGold);
-        DrawTextW(mem, L"SACRED GOLD", -1, &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+        DrawTextW(mem, L"Sacred Gold", -1, &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
         SelectObject(mem, oldFont);
         DeleteObject(title);
     }
     if (!m_caption.empty())
     {
-        HFONT captionFont = serif(std::max(height * 17 / 100, 12), FW_NORMAL, true);
+        HFONT captionFont = font(m_face, std::max(height * 19 / 100, 12));
         const HGDIOBJ oldFont = SelectObject(mem, captionFont);
         const int margin = height / 12;
         RECT r = {0, 0, width - margin, height - margin};
