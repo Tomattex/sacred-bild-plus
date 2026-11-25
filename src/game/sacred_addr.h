@@ -18,6 +18,7 @@ namespace Sacred
     struct cGCclass;
     struct cMapData;
     struct cMouse;
+    struct cMSS;
     struct cMutex;
     struct cObject;
     struct cObjectManager;
@@ -251,6 +252,12 @@ namespace Sacred::Addr
     // The sound system's kernel mutex wrapper (sacred/sound.h).
     inline Thiscall<void(cMutex* self)> cMutex_lock{};      // ENG 0066FA00
     inline Thiscall<void(cMutex* self)> cMutex_unlock{};    // ENG 0066FA10
+    // The sound system's voices (sacred/sound.h). The first free one for a sound effect (`extraPool` 0: voices
+    // 0..voiceCount-1, 3D or 2D as the sound mode; 1: 22..27, 2D), else voiceCount (extraPool 0) or 28; ret 4.
+    // playSFX (ENG 00693510) drops the effect when none is free, unless the caller forces it onto voice 0.
+    inline Thiscall<uint32_t(cMSS* self, uint32_t extraPool)> cMSS_findFreeVoice{}; // ENG 00693040
+    // Ends a voice's sound and frees its sample memory, as playSFX does to force an effect onto voice 0; ret 4.
+    inline Thiscall<void(cMSS* self, uint32_t voice)> cMSS_stopVoice{}; // ENG 00697410
 
     // MSVC's __ftol: ST0 -> EDX:EAX, truncated (sets the x87 control word to chop around a fistp and back).
     inline uintptr_t rtFtol{};                          // ENG 0084A1F4

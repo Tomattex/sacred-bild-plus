@@ -25,6 +25,7 @@
 #include "game/screenshot.h"
 #include "game/skin_check.h"
 #include "game/sound_lock.h"
+#include "game/sound_voices.h"
 #include "game/sprite_quads.h"
 #include "game/text_edit.h"
 #include "game/ui_anchor.h"
@@ -148,6 +149,7 @@ void Sacred::installHooks()
     LobbySelect::install();
     MapCache::install();
     SoundLock::install();
+    SoundVoices::install();
     GroundQuads::install();
     SpriteQuads::install();
     GpuSkin::install();

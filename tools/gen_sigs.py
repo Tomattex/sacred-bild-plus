@@ -138,6 +138,9 @@ SACRED = [
     # the sound system's mutex
     ('cMutex_lock', 0x0066FA00, 'func'),
     ('cMutex_unlock', 0x0066FA10, 'func'),
+    # the sound system's voices
+    ('cMSS_findFreeVoice', 0x00693040, 'func'),
+    ('cMSS_stopVoice', 0x00697410, 'func'),
     # CRT
     ('rtFtol', 0x0084A1F4, 'func'),
     # the two particle systems with identical ripple grid code (fast_math.cpp)

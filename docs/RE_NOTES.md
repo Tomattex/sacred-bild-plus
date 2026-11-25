@@ -274,6 +274,12 @@ procedure with `0x811A20` through the delay-loaded `SetWindowLongA` (`[0xA23FB4]
   (`0x62FF60`: `0x6770E0` then `0x67A7A0` with commands 10/11). A profile at 2560x1440 had ~4.5% of the render
   thread in those two system calls. `[Render] SoundLock` replaces lock and unlock with an SRW lock (recursive by
   owner and depth; an unlock by a non-owner is ignored, as ReleaseMutex fails then).
+- Sound voices: cMSS keeps 28 voices of 0x30 bytes at `+0x90` (`+0` the HSAMPLE, `+4` the H3DSAMPLE); `0x6928B0`
+  allocates 22 (`+0x5D0`) for sound effects, 2D or 3D as the sound mode (`+0x80`), 22..27 are a 2D pool.
+  `playSFX` (`0x693510`) asks `0x693040` (thiscall (extraPool), ret 4) for the first voice whose sample is done and
+  drops the effect when none is (returns -1), unless its second argument forces it onto voice 0 (ended by
+  `0x697410`, thiscall (voice), ret 4). 36 monsters fighting the hero ask for ~40 effects a second and lost up
+  to 15 of them; `SoundVoices` hands such an effect the playing, non-looping voice that ends soonest.
 - Tile layer records come from `0x635FE0`: a map cache of 0x1000 entries filled from the data file
   (fseek/fread per miss) with an O(n) LRU scan per insert when full. A zoomed-out high-resolution view needs
   more entries and thrashed every frame (~140 ms); the limit is raised to 0x8000. The texture manager budget (`0x65E7A0`, set by `initApp`) is not a limit on modern

@@ -61,6 +61,7 @@ What the game's code at those addresses does is in [`RE_NOTES.md`](RE_NOTES.md),
 | `src/game/map_cache.*` | Hash index in front of the map record caches (`[Render] RecordIndex`) |
 | `src/game/fast_math.*` | Faster replacements for the game's x87 math helpers (`[Render] FastMath`) |
 | `src/game/sound_lock.*` | The sound system's kernel mutex as a user-mode lock (`[Render] SoundLock`) |
+| `src/game/sound_voices.*` | A sound effect with all 22 voices busy takes the one that ends soonest instead of being dropped |
 | `src/game/d3d_stats.*` | `[Debug] D3DStats` frame statistics |
 | `src/game/file_cache.*` | The pak files and music read once in the background into Windows' file cache (`[Render] WarmFileCache`) |
 | `src/game/file_io_stats.*` | `[Debug] D3DStats`: the game's and Miles' file opens and reads timed, slow ones logged |
