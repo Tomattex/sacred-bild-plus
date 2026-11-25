@@ -144,10 +144,15 @@ private:
     void traceUiDraw(const char* what, DWORD count);
     // Clips an axis-aligned 4-vertex quad (strip/fan) to the UI frame in place; false if it can't.
     bool clipQuad(DWORD fvf, uint8_t* verts);
-    // Texture coordinates of a mapped, axis-aligned, textured rectangle (a quad, or one cut into rows or columns):
-    // each pixel samples the stage 0 texture at its middle and the edges stay inside the rectangle's texels (no seams
-    // between UI images under scaling and bilinear filtering). Leaves other shapes alone.
-    void fitTexels(DWORD fvf, uint8_t* verts, DWORD count);
+    // Texture coordinates of a mapped, axis-aligned, textured 4-vertex quad: each pixel samples the stage 0 texture
+    // at its middle and the edges stay inside the quad's texels (no seams between UI images under scaling and
+    // bilinear filtering). Leaves other quads alone.
+    void fitTexels(DWORD fvf, uint8_t* verts);
+    // A mapped, textured UI draw of more than a quad (the overview map's squares are 6-vertex strips) with bilinear
+    // filtering, drawn with the texture clamped: its edges repeat their own texels instead of blending in the
+    // texture's other side (seams under a scaled UI). Its coordinates stay as they are: fitted like a quad's, an
+    // image that scrolls by fractions of a pixel would wobble. false (nothing drawn) for other draws.
+    bool drawEdgeClamped(D3DPRIMITIVETYPE type, DWORD fvf, DWORD count, DWORD flags, HRESULT& hr);
     // `virt` (1024x768 space) mapped into the UI frame and clamped to it.
     D3DVIEWPORT7 canvasViewport(const D3DVIEWPORT7& virt) const;
     // Unconfined (cursor) mode: 3D draws such as the item the cursor carries project into the game's 1024x768
