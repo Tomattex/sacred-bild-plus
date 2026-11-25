@@ -25,6 +25,9 @@
 - Text fields (savegame and character names, chat, network screens) edit like a normal text box: a movable caret
   (arrows, Home / End, click, Ctrl for words), selection (Shift, Ctrl+A, mouse drag), Delete, and Ctrl+C / X / V
   with the Windows clipboard.
-- The menus show "SacredBild+" in gold under the game's version in the bottom right corner.
+- The menus show "SacredBild+" under the game's version in the bottom right corner, in a gold gradient that runs
+  across it.
 - The character name field has a palette on right click: colours and some of the game's sprites go into the name as
-  the font's codes (`\c` colour, `\g` sprite). Text fields edit these codes as one character.
+  the font's codes (`\c` colour, `\g` sprite). A colour replaces the name's colour (or the selection's) instead of
+  adding codes; the palette shows the length used and dims what no longer fits. Text fields edit these codes as one
+  character.

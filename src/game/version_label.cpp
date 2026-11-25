@@ -4,7 +4,10 @@
 #include "patch.h"
 #include "sacred/ui.h"
 
+#include <windows.h>
+
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <iterator>
 
@@ -18,8 +21,11 @@ namespace
     constexpr int32_t kRight = 1024 - 6;    // the label's right end in the 1024x768 layout
     constexpr int32_t kBottom = 768 - 2;
     constexpr uint32_t kShadow = 0x99000000;
-    // Pale gold to bronze across the label, as the menu's gold lettering shades.
-    constexpr uint32_t kStops[] = {0xFFFFF1C9, 0xFFE8B84A, 0xFFA8641E};
+    // The shades of the menu's gold lettering, pale gold to bronze and back: they run across the label, a full turn
+    // every kPeriodMs, the label showing a bit less than one turn at a time.
+    constexpr uint32_t kStops[] = {0xFFFFF1C9, 0xFFE8B84A, 0xFFA8641E, 0xFFE8B84A};
+    constexpr uint32_t kPeriodMs = 2400;
+    constexpr float kSpan = 0.75f;
 
     constexpr size_t kCount = std::size(kLabel) - 1;
 
@@ -39,12 +45,14 @@ namespace
         return out;
     }
 
-    uint32_t gradient(size_t i, size_t count)
+    // Character i of `count` at `phase` (0..1) of the turn.
+    uint32_t gradient(size_t i, size_t count, float phase)
     {
-        const float t = count > 1 ? static_cast<float>(i) / static_cast<float>(count - 1) : 0.0f;
-        const float scaled = t * (std::size(kStops) - 1);
-        const size_t stop = std::min(static_cast<size_t>(scaled), std::size(kStops) - 2);
-        return lerp(kStops[stop], kStops[stop + 1], scaled - static_cast<float>(stop));
+        float t = static_cast<float>(i) / static_cast<float>(count) * kSpan - phase;
+        t -= std::floor(t);
+        const float scaled = t * std::size(kStops);
+        const size_t stop = static_cast<size_t>(scaled) % std::size(kStops);
+        return lerp(kStops[stop], kStops[(stop + 1) % std::size(kStops)], scaled - std::floor(scaled));
     }
 
     // Puts the label in the bottom right corner and the version above it, both starting at the label's left.
@@ -104,6 +112,7 @@ void VersionLabel::draw(cUI_Manager* manager, IDirect3DDevice7* device)
         return;
     }
     // A character at a time, each in its colour of the gradient, over a soft shadow.
+    const float phase = static_cast<float>(GetTickCount() % kPeriodMs) / static_cast<float>(kPeriodMs);
     wchar_t one[2] = {};
     for (int pass = 0; pass < 2; ++pass)
     {
@@ -112,7 +121,7 @@ void VersionLabel::draw(cUI_Manager* manager, IDirect3DDevice7* device)
         {
             one[0] = kLabel[i];
             labelFont->draw(device, UiRect{g_left + g_x[i] + offset, g_top + offset, 64, 64}, one,
-                pass == 0 ? kShadow : gradient(i, kCount), 0);
+                pass == 0 ? kShadow : gradient(i, kCount, phase), 0);
         }
     }
 }
