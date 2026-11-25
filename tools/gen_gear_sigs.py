@@ -180,6 +180,10 @@ GEAR = [
     # savegame and refreshes the list, 10 refreshes the list, 0xC is its Back (closes it; in the menus the start
     # menu comes back).
     ('cUI_Savegame_command', 0x0071CC90, 'func'),
+    # cEngine::captureInternal (thiscall (engine, bool capture), ret 4): reads the back buffer into the engine's 128 x 96
+    # savegame picture (engine +0x1A4; 0 frees it). Only the engine's quicksave / autosave events and the savegame
+    # request's thumbnail flag call it, so Save::request takes the picture itself between the world and the UI.
+    ('cEngine_captureInternal', 0x00613670, 'func'),
     # The ability tables (gear/tables.cpp): T1 (ids from 1000, 0x78-byte records) and T2 (ids from 1, 0x94-byte
     # records) are static arrays that 0x4D1AF0 / 0x4D2310 scan by id; the lookups load the first record and compare
     # against the end (0x952A38 and 0x955344 are the end of T1 and of T2). The text lookup (the text table's instance
@@ -203,8 +207,9 @@ GEAR = [
     # (string*, first, last, allocator*), ret 0xC) the engine itself copies NETWORK_LOBBY in with.
     ('g_pLobby', 0x0182EBD0, 'data'),
     ('cString_assign', 0x00415BD0, 'func'),
-    ('cNet_openScreen', 0x007D8560, 'func'),
-    ('cNet_loadSettings', 0x007EDEA0, 'func'),
+    # Both through a call: SacredBild's lobby selector detours them before Sacred Gear loads.
+    ('cNet_openScreen', 0x007D8560, 'call', 0x0070BD1C),
+    ('cNet_loadSettings', 0x007EDEA0, 'call', 0x007D879F),
     ('cNet_saveSettings', 0x007EE780, 'func'),
     ('lobbyPortCall', 0x007CCD28, 'code'),
     # The difficulty level of the running game (0 .. 4): the engine's own code indexes tables with it (ReBorn's appended code too).

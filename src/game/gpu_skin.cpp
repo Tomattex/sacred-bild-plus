@@ -29,6 +29,9 @@ namespace
     constexpr DWORD kFvfModel = D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_TEX1;          // 0x112
     constexpr DWORD kFvfModelDiffuse = kFvfModel | D3DFVF_DIFFUSE;                 // 0x152
     constexpr DWORD kFvfShadow = D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1;        // 0x142: one color, stride 0
+    constexpr DWORD kFvfOverlay = D3DFVF_XYZ | D3DFVF_TEX1;                         // 0x102: no color, unlit
+    // 0x252: coordinate set 1 is the deformed normals
+    constexpr DWORD kFvfNormalCoords = D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_DIFFUSE | D3DFVF_TEX2;
 
     GrannyMesh::DeformFn g_origDeform = nullptr;
     uintptr_t g_renderReturn = 0;   // the rendering path's deform call returns here
@@ -543,12 +546,19 @@ namespace
     bool drawGpu(IDirect3DDevice7* real, Pending& p, void (*prepare)(void*), void* context, D3DPRIMITIVETYPE type,
         DWORD fvf, const D3DDRAWPRIMITIVESTRIDEDDATA& data, DWORD vertCount, const WORD* indices, DWORD indexCount)
     {
-        // The draws cGranny_render and cGranny_renderShadow make from the rendering state; anything else is drawn as it
-        // comes.
+        // The draws cGranny_render and cGranny_renderShadow make from the rendering state, and the spell overlays
+        // cObject3D_drawModel draws over the model (0x40CA20 / 0x40BFD0 with FVF 0x102; 0x40C320 with 0x252, the deformed
+        // normals as coordinate set 1); anything else is drawn as it comes. A pass over a model the shader drew must come
+        // from the shader too: from CPU-skinned vertices its Z test LESSEQUAL misses the model's depth, so it shows in
+        // patches.
         const bool diffuse = (fvf & D3DFVF_DIFFUSE) != 0;
         const bool normals = (fvf & D3DFVF_NORMAL) != 0;
-        if (type != D3DPT_TRIANGLELIST || (fvf != kFvfModel && fvf != kFvfModelDiffuse && fvf != kFvfShadow) ||
+        const bool normalCoords = fvf == kFvfNormalCoords;
+        if (type != D3DPT_TRIANGLELIST || (fvf != kFvfModel && fvf != kFvfModelDiffuse && fvf != kFvfShadow &&
+                fvf != kFvfOverlay && !normalCoords) ||
             vertCount != p.info->vertexCount || (normals && (!p.normals || data.normal.lpvData != p.normals)) ||
+            (normalCoords && (data.textureCoords[1].lpvData != p.normals ||
+                data.textureCoords[1].dwStride != 3 * sizeof(float))) ||
             !data.textureCoords[0].lpvData || !indices || indexCount < 3 || (diffuse && !data.diffuse.lpvData))
         {
             return false;
@@ -576,6 +586,7 @@ namespace
         draw.paletteId = p.paletteId;
         draw.normals = normals;
         draw.normalizeSkinned = p.normalize;
+        draw.normalCoords = normalCoords;
         // The shadows' one color comes with stride 0: a constant instead of a stream copied per draw.
         draw.vertexColor = diffuse;
         draw.color = 0xFFFFFFFF;

@@ -33,6 +33,7 @@ namespace DDraw9::Skin
         uint32_t paletteId;     // the same id means the same palette values (not uploaded again); never 0
         bool normals;           // the draw has vertex normals (shadows: none, drawn unlit)
         bool normalizeSkinned;  // normalize the skinned normals, as Granny did
+        bool normalCoords;      // coordinate set 1 is the skinned normals' x and y (FVF 0x252), not the mesh's set
         // The vertices' diffuse color: per vertex (FVF 0x152: `diffuse`, `diffuseStride` bytes apart), or one `color`
         // for all of them (shadows); without `vertexColor` the draw has none (white unlit, the material lit).
         bool vertexColor;

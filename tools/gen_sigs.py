@@ -5,7 +5,7 @@
 # Each signature comes from the English GOG build and must match exactly once in it and in every other build that is
 # there (the German one: SACRED_DE / GAMESERVER_DE; skipped with a warning if missing).
 # Usage: python tools/gen_sigs.py   (set SACRED_ENG / GAMESERVER_ENG / SACRED_DE / GAMESERVER_DE to your copies)
-import json, os, sys
+import json, os, struct, sys
 sys.path.insert(0, os.path.dirname(__file__))
 import sigs
 from funcs import _A
@@ -32,7 +32,9 @@ def other_builds(*paths):
 
 
 # (name, ENG address, kind). Kinds: func = entry point (window starts there), code = an instruction or an operand
-# inside one, data = a global used by some instruction (resolved through that instruction's address operand).
+# inside one, data = a global used by some instruction (resolved through that instruction's address operand),
+# call = a function found through a call to it (the fourth value: the call instruction; Sig::Take::Rel32), for a
+# function the other DLL detours, whose own bytes are not there to match then.
 SACRED = [
     # dxDriver7
     ('dxDriver7_init', 0x00645260, 'func'),
@@ -99,6 +101,7 @@ SACRED = [
     ('cEngine_renderThreadRun', 0x0060E350, 'func'),
     ('frameLimiter', 0x0060A9F0, 'func'),
     ('menuWater_update', 0x0075EF40, 'func'),
+    ('weatherRender', 0x004190D0, 'func'),
     ('renderLimiterReturn', 0x0060EA6E, 'code'),
     ('captureLockBackReturn', 0x006136AB, 'code'),
     ('dxDriver7_startCapture', 0x00648660, 'func'),
@@ -215,6 +218,15 @@ OPTIONAL = {'cTextTable_load', 'textTableAllocCall'}
 
 
 def resolve(ref, others, name, va, kind, start=None):
+    if kind == 'call':
+        if start is None or ref.rd(start, 1)[0] not in (0xE8, 0xE9) or start + 5 + struct.unpack('<i', ref.rd(start + 1, 4))[0] != va:
+            print(f'{name}: {start:#x} is not a call to {va:#x}' if start else f'{name}: a call entry needs its call site', file=sys.stderr)
+            return None
+        r = sigs.make(ref, start + 1, others)
+        if not r:
+            return None
+        sig, off, found = r
+        return sig, off, 'Rel32', [va] + [f + 4 + struct.unpack('<i', o.rd(f, 4))[0] for o, f in zip(others, found)]
     if kind == 'data':
         refs = [sigs.operand_of(ref, start, va)] if start is not None else sigs.xrefs(ref, va, 40)
         best = None

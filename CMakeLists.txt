@@ -251,6 +251,7 @@ if(SACREDBILD_NETTEST)
     tools/nettest/nettest.cpp
     src/config.cpp
     src/fmt.cpp
+    src/instance.cpp
     src/log.cpp
     src/net/address.cpp
     src/net/adapters.cpp

@@ -134,6 +134,7 @@ static const Sig::Entry kAddressSigs[] = {
     {"cEngine_renderThreadRun", "55 8B EC 83 E4 F8 6A FF 68 ?? ?? ?? ?? 64 A1 00 00 00 00 50 64 89 25 00 00 00 00 81 EC 60 03 00 00", 0, Sig::Take::Match, &Sacred::Addr::cEngine_renderThreadRun}, // 0060E350, 0060E3F0, 0060E3F0
     {"frameLimiter", "83 EC 20 8D 44 24 18 56 57 50 FF 15 ?? ?? ?? ??", 0, Sig::Take::Match, &Sacred::Addr::frameLimiter}, // 0060A9F0, 0060AA90, 0060AA90
     {"menuWater_update", "51 56 8B F1 D9 86 64 19 00 00 D8 64 24 0C D9 96 64 19 00 00", 0, Sig::Take::Match, &Sacred::Addr::menuWater_update}, // 0075EF40
+    {"weatherRender", "64 A1 00 00 00 00 6A FF 68 ?? ?? ?? ?? 50 64 89 25 00 00 00 00 83 EC 38", 0, Sig::Take::Match, &Sacred::Addr::weatherRender}, // 004190D0, 004190B0, 004190B0
     {"renderLimiterReturn", "83 C4 0C 8B 46 54 F6 C4 80 74 0B 8B 4E 54", 0, Sig::Take::Match, &Sacred::Addr::renderLimiterReturn}, // 0060EA6E, 0060EB0E, 0060EB0E
     {"menuLoopSleepJump", "A8 01 74 04 6A 14 FF D3 6A 01 E8", 2, Sig::Take::Match, &Sacred::Addr::menuLoopSleepJump}, // 0075713C
     {"captureLockBackReturn", "85 C0 0F 84 ?? ?? ?? ?? 8B 0D ?? ?? ?? ?? 8B 85 A0 01 00 00", 0, Sig::Take::Match, &Sacred::Addr::captureLockBackReturn}, // 006136AB, 0061374B, 0061374B

@@ -293,16 +293,23 @@ namespace DDraw9
         // All four coordinate sets the shader writes start from the mesh's one set: stage s reads set s (its
         // D3DTSS_TEXCOORDINDEX is set so for the draw), sets 0 and 1 through their stage's 2D texture matrix
         // (D3DTTFF_COUNT2: the glow effects scroll and turn their texture over the mesh's own coordinates, another stage
-        // reading them untransformed). Generated coordinates have flags in the high bits.
+        // reading them untransformed). A stage 0 or 1 that reads the game's set 1 of a draw with `normalCoords` gets the
+        // skinned normal instead (the multiTex overlays). Generated coordinates have flags in the high bits.
         Float4 texTransform[4] = {{1, 0, 0, 0}, {0, 1, 0, 0}, {1, 0, 0, 0}, {0, 1, 0, 0}};
+        BOOL normalCoords[2] = {};
         DWORD stages = 0;
         for (; stages < kStages && m_tss[stages][D3DTSS_COLOROP] != D3DTOP_DISABLE; ++stages)
         {
             const DWORD flags = m_tss[stages][D3DTSS_TEXTURETRANSFORMFLAGS];
-            if (stages > 3 || m_tss[stages][D3DTSS_TEXCOORDINDEX] > 3 ||
+            const bool fromNormals = draw.normalCoords && m_tss[stages][D3DTSS_TEXCOORDINDEX] == 1;
+            if (stages > 3 || m_tss[stages][D3DTSS_TEXCOORDINDEX] > 3 || (fromNormals && stages > 1) ||
                 (flags != D3DTTFF_DISABLE && (flags != D3DTTFF_COUNT2 || stages > 1)))
             {
                 return false;
+            }
+            if (fromNormals)
+            {
+                normalCoords[stages] = TRUE;
             }
             if (flags == D3DTTFF_COUNT2)
             {
@@ -430,11 +437,12 @@ namespace DDraw9
             std::memcpy(m_skinTexTransform, texTransform, sizeof(texTransform));
             m_skinTexTransformSet = true;
         }
-        const BOOL flags[5] = {draw.normalizeSkinned, m_rs[D3DRENDERSTATE_NORMALIZENORMALS] != 0,
-            m_rs[D3DRENDERSTATE_LOCALVIEWER] != 0, m_rs[D3DRENDERSTATE_SPECULARENABLE] != 0, lighting};
+        const BOOL flags[7] = {draw.normalizeSkinned, m_rs[D3DRENDERSTATE_NORMALIZENORMALS] != 0,
+            m_rs[D3DRENDERSTATE_LOCALVIEWER] != 0, m_rs[D3DRENDERSTATE_SPECULARENABLE] != 0, lighting, normalCoords[0],
+            normalCoords[1]};
         if (std::memcmp(flags, m_skinFlags, sizeof(flags)) != 0)
         {
-            m_dev->SetVertexShaderConstantB(0, flags, 5);
+            m_dev->SetVertexShaderConstantB(0, flags, 7);
             std::memcpy(m_skinFlags, flags, sizeof(flags));
         }
         if (static_cast<int>(lightCount) != m_skinLightCount)

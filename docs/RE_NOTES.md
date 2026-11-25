@@ -356,10 +356,13 @@ AMD user-mode driver 12 %, DDrawCompat 10 %, ntdll 9 %, msvcrt 6 % (memcpy), d3d
   offset in `_31`/`_32`), stage 1 the mesh's own texture for alpha, both on coordinate set 0); item types with flag
   `0x100000` (glow type at `+0x6E`, texture handle at `+0x66` of the 0x80-byte type record) go through
   `cGranny::renderComplex` (`0x406510`: FVF `0x152` with a stride-0 color, then `0x112` additive, both with the
-  texture matrix); in the character view (`0x6F54D0`) `0x40C320` uses the deformed normals as coordinate set 1
-  (FVF `0x252`). With `GpuSkinning` the skinning shader applies stage 0/1 texture matrices itself, so these passes
-  are drawn by the same shader as the model; drawn from CPU-skinned vertices they missed its depth and showed only
-  in a few spots. `0x401920` calls `GrannyAdvanceTime` per model
+  texture matrix). The spell overlays on a creature (Gear's `gear.buffs.set_overlay` numbers) are passes of
+  `cObject3D_drawModel` too: `0x40CA20` / `0x40BFD0` draw FVF `0x102` (no normals, no color, lighting off), `0x40C320`
+  FVF `0x252` with the deformed normals as coordinate set 1 (stage 1 `MODULATE2X` of `fx_multiTexBase02/03/06.tga` by
+  them; overlay 12; also the character view `0x6F54D0`). With `GpuSkinning` the skinning shader applies stage 0/1
+  texture matrices and the normals as set 1 itself, so these passes are drawn by the same shader as the model; drawn
+  from CPU-skinned vertices they missed its depth and showed only in a few spots. `0x401920` calls `GrannyAdvanceTime`
+  per model
   instance (~10 % of the thread); the skinning inside the lock calls is about as much. Granny is 1.x (2002 API:
   `GrannyLockSequenceForRendering`, `...RenderingState`).
 - `GetTransform` through d3dim700/DDrawCompat/driver cost ~5 %: SacredBild answers it from the last
@@ -861,6 +864,7 @@ What Sacred Gear's Lua API stands on. The code is in `gear/` (`gear/game/gear_ad
 ### Party
 
 - The players object `*0x0182EBE8` +0x14 is the local hero id; an object ticks only where its owner byte (+0x39) is the local id. Switching control (gear/party.cpp) rewrites the owner of everything the old id owned, sets +0x14 and the engine's mouse target (`*0x00AD6EF8` +0x13C; a savegame load resets +0x14 to 1 but not this), swaps the follower vector (+0x39C, 9-byte entries, mercenary leader at +0x251) and rewrites the anti-cheat shadows (`*0x0182EE5C` and `*0x0182EE60`, checked by 0x00590730 against `hero()`: experience, gold, level XOR the hero's byte +0x38 x4 (doubled for the second page), then the dwords from +0x3B0).
+- Creature flags +0x200 bit 0x40: the game's own reactions stay off (0x599910 calls 0x548F60 only when options `*0x0182EE40` & 0x30 and the bit is clear: the creature fights back or steps away by itself). The hero the player starts with has it, a companion has not: a played companion acted and fled on its own. Gear moves the bit with control and keeps it on the local hero only (Party::frame).
 - A hero is created with `create(type 1..9, pos, id, 0, 0)` and finished as 0x0060D9F0 does (+0x18 copied to +0x2B9, 0x0055FC00 (stats, 0, -1)). Stats block +0x3A8: abilities vector at +0x102 (0x16-byte entries: +4 id, +6 level, +7 bonus, +0xA regeneration time, +0x12 seconds left), experience gain 0x0057E160 (stats, amount) levels up. Combo slots: stats +0x10E vector of 0x26-byte entries (+0 id 0x200 + slot, +2 four art ids (dwords), +0x12 four levels, +0x1A regeneration time, +0x22 charge), written by 0x005813D0 (stats, slot, arts*, levels*, id).
 - Orders are 0x44-byte events (vtable 0x0089095C) through the creature's vtable +0x18: move type 4 (+0x14 mode 2, +0x18 x, +0x1C y), attack 7 (+0x18 target, +0x1C x, +0x20 y), ability 0x105 (+0x10 target, +0x14 sector, +0x18 x, +0x1C y, +0x28 100, +0x2C 1 art / 0 spell / 2 combo, +0x30 id, +0x34 layer).
 - 0x006107BC drives object 2 with the arrow keys in single player.
